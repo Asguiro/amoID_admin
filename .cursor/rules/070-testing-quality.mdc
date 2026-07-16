@@ -1,0 +1,30 @@
+---
+description: Qualité, tests et critères de merge
+alwaysApply: true
+---
+
+# Tests minimum par feature
+
+- loader autorisé ;
+- loader refusé ;
+- action valide ;
+- action invalide ;
+- erreur API ;
+- conflit 409 si pertinent ;
+- E2E du parcours principal ;
+- accessibilité axe ;
+- responsive desktop/tablette.
+
+# Outils
+
+- Vitest
+- Testing Library
+- MSW
+- Playwright
+- @axe-core/playwright
+
+# Critères
+
+Avant merge : typecheck, tests, build, lint si configuré.
+
+Pas de `any`, pas de `@ts-ignore` sans justification documentée, pas de test supprimé pour faire passer le pipeline.

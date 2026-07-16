@@ -1,0 +1,38 @@
+---
+description: Séparation pages, loaders, actions et API server-only
+alwaysApply: true
+---
+
+# Structure par domaine
+
+```txt
+app/server/<domain>/
+  loaders/<domain>.server.ts
+  actions/<domain>.server.ts
+  schema/<domain>.schema.ts
+  mappers/<domain>.mapper.ts
+```
+
+# API
+
+Tous les appels externes passent par `app/server/api/*.server.ts`.
+
+Le client API :
+
+- ajoute Authorization depuis la session serveur ;
+- ajoute correlation ID et idempotency key si requis ;
+- applique timeout ;
+- normalise erreurs ;
+- ne journalise jamais les payloads sensibles ;
+- transforme 401/403/409/422 en réponses gérables.
+
+# FormData
+
+- parser dans une action ;
+- valider avec Zod ;
+- retourner des erreurs françaises structurées ;
+- ne pas faire confiance aux champs cachés pour les permissions ou l'identité de l'utilisateur.
+
+# Mocks
+
+Les mocks utilisent les mêmes interfaces que l'API réelle et restent server-only.

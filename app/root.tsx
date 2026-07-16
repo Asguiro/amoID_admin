@@ -8,7 +8,7 @@ import {
 } from "react-router";
 
 import type { Route } from "./+types/root";
-import "./app.css";
+import "./styles/app.css";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -19,13 +19,14 @@ export const links: Route.LinksFunction = () => [
   },
   {
     rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
+    href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Poppins:wght@500;600;700&display=swap",
   },
+  { rel: "icon", href: "/favicon.ico", sizes: "any" },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="fr">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -46,30 +47,45 @@ export default function App() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  let message = "Oops!";
-  let details = "An unexpected error occurred.";
+  let title = "Erreur inattendue";
+  let details =
+    "Une erreur est survenue. Réessayez ou contactez le support AMO ID.";
   let stack: string | undefined;
 
   if (isRouteErrorResponse(error)) {
-    message = error.status === 404 ? "404" : "Error";
-    details =
-      error.status === 404
-        ? "The requested page could not be found."
-        : error.statusText || details;
-  } else if (import.meta.env.DEV && error && error instanceof Error) {
+    if (error.status === 404) {
+      title = "Page introuvable";
+      details = "La ressource demandée n'existe pas ou a été déplacée.";
+    } else if (error.status === 401) {
+      title = "Session expirée";
+      details = "Veuillez vous reconnecter pour continuer.";
+    } else if (error.status === 403) {
+      title = "Accès refusé";
+      details = "Vous n'avez pas les permissions nécessaires.";
+    } else {
+      title = `Erreur ${error.status}`;
+      details = error.statusText || details;
+    }
+  } else if (import.meta.env.DEV && error instanceof Error) {
     details = error.message;
     stack = error.stack;
   }
 
   return (
-    <main className="pt-16 p-4 container mx-auto">
-      <h1>{message}</h1>
-      <p>{details}</p>
-      {stack && (
-        <pre className="w-full p-4 overflow-x-auto">
-          <code>{stack}</code>
-        </pre>
-      )}
+    <main className="min-h-screen bg-base-200 p-6">
+      <div className="amo-card mx-auto max-w-xl p-8">
+        <p className="text-sm font-medium text-primary">AMO ID Santé</p>
+        <h1 className="mt-2 text-2xl font-semibold text-secondary">{title}</h1>
+        <p className="mt-3 text-base-content/80">{details}</p>
+        {stack ? (
+          <pre className="mt-6 overflow-x-auto rounded-xl bg-base-300 p-4 text-xs">
+            <code>{stack}</code>
+          </pre>
+        ) : null}
+        <a className="btn btn-primary mt-6" href="/dashboard">
+          Retour au tableau de bord
+        </a>
+      </div>
     </main>
   );
 }

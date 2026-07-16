@@ -1,0 +1,29 @@
+---
+description: Contexte permanent du back-office AMO ID Santé
+alwaysApply: true
+---
+
+# Projet
+
+Back-office institutionnel AMO ID Santé Mali destiné à l'administration, la supervision, l'audit, le reporting et le traitement des alertes.
+
+# Stack
+
+- React Router v7 Framework Mode, SSR obligatoire
+- TypeScript strict
+- Tailwind CSS 4
+- daisyUI avec thème `amo-admin`
+- API NestJS externe appelée uniquement depuis le serveur SSR
+
+# Règles absolues
+
+1. Ne jamais exposer un token API au navigateur.
+2. Ne jamais placer de token dans localStorage, sessionStorage, React Context ou Zustand/Redux.
+3. Ne jamais appeler l'API métier directement depuis un composant.
+4. Ne jamais afficher de photo biométrique brute.
+5. Ne jamais écrire de donnée médicale ou biométrique en clair dans les logs.
+6. Ne jamais proposer de hard delete pour une entité sensible.
+7. Ne jamais traiter une alerte comme une preuve automatique de fraude.
+8. Ne jamais calculer des coûts sans données de prestations financières.
+9. Ne jamais inventer une permission non documentée.
+10. Code et commentaires en anglais ; interface et messages utilisateur en français.

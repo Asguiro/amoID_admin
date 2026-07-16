@@ -1,0 +1,24 @@
+---
+description: Performance, responsive et accessibilité
+alwaysApply: true
+---
+
+# Performance
+
+- Pagination serveur pour listes volumineuses.
+- Import sélectif ECharts depuis `echarts/core` quand le bundle devient critique.
+- Charger les graphiques non essentiels côté client dans un composant dédié.
+- Éviter les re-renders des grandes tables.
+- Ne pas surutiliser la virtualisation ; l'utiliser seulement après mesure.
+- Définir des budgets de performance pour dashboard et listes.
+
+# Accessibilité
+
+- Navigation clavier.
+- Focus visible.
+- Landmarks et titres hiérarchisés.
+- Labels explicites.
+- États non communiqués uniquement par couleur.
+- Résumé textuel des graphiques.
+- `aria-live` pour les actions async.
+- Contraste WCAG AA.

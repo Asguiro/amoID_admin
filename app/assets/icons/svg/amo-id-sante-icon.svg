@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="AMO ID Santé app icon">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0E5B3B"/><stop offset="1" stop-color="#063B28"/></linearGradient></defs>
+  <rect x="0" y="0" width="1024" height="1024" fill="url(#bg)"/>
+  <g transform="translate(0,0)">
+    <g fill="none" stroke="#D4AF37" stroke-width="22" stroke-linecap="square">
+      <path d="M242 300 H314 M242 300 V372"/><path d="M782 300 H710 M782 300 V372"/><path d="M242 724 H314 M242 724 V652"/><path d="M782 724 H710 M782 724 V652"/>
+    </g>
+    <path d="M512 228 C430 284 352 296 294 300 V478 C294 626 383 744 512 802 C641 744 730 626 730 478 V300 C672 296 594 284 512 228 Z" fill="none" stroke="#FFFFFF" stroke-width="34" stroke-linejoin="round"/>
+    <g fill="none" stroke="#FFFFFF" stroke-width="22" stroke-linecap="round"><path d="M395 420 V383 H432"/><path d="M629 420 V383 H592"/><path d="M395 526 V563 H432"/><path d="M629 526 V563 H592"/></g>
+    <circle cx="512" cy="472" r="42" fill="none" stroke="#FFFFFF" stroke-width="22"/>
+    <g fill="#D4AF37"><rect x="470" y="604" width="84" height="172" rx="9"/><rect x="426" y="648" width="172" height="84" rx="9"/></g>
+  </g>
+</svg>

@@ -1,0 +1,22 @@
+---
+description: Tables, filtres, pagination et reporting
+alwaysApply: true
+---
+
+# Tables
+
+- Utiliser TanStack Table via le composant partagé `DataTable`.
+- Pagination, tri et filtres sont pilotés par le serveur.
+- L'état est reflété dans l'URL.
+- Ne pas charger un dataset national entier dans le navigateur.
+- Les actions ligne sont dans un menu accessible.
+- Les colonnes sensibles sont masquées selon permissions.
+
+# Reporting
+
+- Les agrégations métier sont calculées côté backend.
+- Afficher période, périmètre, source et generatedAt.
+- Un graphique a toujours un résumé textuel.
+- Les exports officiels sont générés côté serveur.
+- Journaliser les exports et téléchargements.
+- Ne pas calculer les coûts à partir des événements d'identification.

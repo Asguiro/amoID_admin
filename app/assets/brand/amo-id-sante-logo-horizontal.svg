@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="520" viewBox="0 0 1800 520" role="img" aria-label="AMO ID Santé logo">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0E5B3B"/>
+      <stop offset="1" stop-color="#063B28"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(40,40) scale(0.42)">
+    <g fill="none" stroke="#D4AF37" stroke-width="24" stroke-linecap="square">
+      <path d="M242 300 H314 M242 300 V372"/>
+      <path d="M782 300 H710 M782 300 V372"/>
+      <path d="M242 724 H314 M242 724 V652"/>
+      <path d="M782 724 H710 M782 724 V652"/>
+    </g>
+    <path d="M512 228 C430 284 352 296 294 300 V478 C294 626 383 744 512 802 C641 744 730 626 730 478 V300 C672 296 594 284 512 228 Z" fill="none" stroke="#0E5B3B" stroke-width="42" stroke-linejoin="round"/>
+    <g fill="none" stroke="#0E5B3B" stroke-width="26" stroke-linecap="round">
+      <path d="M395 420 V383 H432"/><path d="M629 420 V383 H592"/>
+      <path d="M395 526 V563 H432"/><path d="M629 526 V563 H592"/>
+    </g>
+    <circle cx="512" cy="472" r="42" fill="none" stroke="#0E5B3B" stroke-width="26"/>
+    <g fill="#D4AF37"><rect x="470" y="604" width="84" height="172" rx="9"/><rect x="426" y="648" width="172" height="84" rx="9"/></g>
+  </g>
+  <line x1="475" y1="82" x2="475" y2="438" stroke="#0E5B3B" stroke-width="6" opacity="0.95"/>
+  <text x="540" y="238" font-family="Poppins, Montserrat, Arial, sans-serif" font-size="150" font-weight="800" letter-spacing="10" fill="#0E5B3B">AMO</text>
+  <text x="1018" y="238" font-family="Poppins, Montserrat, Arial, sans-serif" font-size="150" font-weight="500" letter-spacing="4" fill="#D4AF37">ID</text>
+  <text x="548" y="365" font-family="Poppins, Montserrat, Arial, sans-serif" font-size="128" font-weight="400" fill="#0E5B3B">Santé</text>
+  <path d="M840 244 L880 231" stroke="#C62828" stroke-width="12" stroke-linecap="round"/>
+  <line x1="985" y1="283" x2="985" y2="386" stroke="#C62828" stroke-width="7"/>
+  <text x="1025" y="304" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700" fill="#1F1F1F">ACCÈS SANTÉ SÉCURISÉ.</text>
+  <text x="1025" y="352" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700" fill="#1F1F1F">IDENTITÉ BIOMÉTRIQUE.</text>
+  <text x="1025" y="400" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="700" fill="#1F1F1F">SOINS SANS FRONTIÈRES.</text>
+</svg>

@@ -1,0 +1,35 @@
+---
+description: RBAC, sécurité et audit du back-office
+alwaysApply: true
+---
+
+# Permissions
+
+- Vérifier les permissions dans loader/action avant tout appel de domaine.
+- L'API NestJS reste la décision finale.
+- Le menu masqué n'est jamais une mesure de sécurité.
+- Utiliser des permissions atomiques, pas des comparaisons dispersées de chaînes de rôles.
+
+# Session
+
+- Cookie signé httpOnly.
+- Secure en production.
+- SameSite adapté à l'architecture.
+- Rotation et expiration.
+- Protection CSRF pour mutations sensibles.
+
+# Audit
+
+- Toute mutation sensible envoie un motif.
+- Le backend écrit l'audit.
+- `audit_logs` est lecture seule dans le web.
+- Ne jamais proposer edit/delete sur un log.
+- Ne jamais loguer token, photo, gabarit ou donnée médicale.
+
+# Suppression
+
+- Agents : suspend/revoke/reactivate.
+- Établissements : suspend/archive.
+- Appareils : revoke.
+- QR : revoke.
+- Bénéficiaires : correction contrôlée, jamais hard delete UI.

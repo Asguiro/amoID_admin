@@ -1,0 +1,23 @@
+---
+description: Conception des alertes et workflows anti-fraude
+alwaysApply: false
+globs: ["app/pages/alerts/**", "app/components/alerts/**", "app/server/alerts/**"]
+---
+
+# Principe
+
+Une alerte est un signal, pas une condamnation.
+
+# États autorisés
+
+NEW, ASSIGNED, UNDER_REVIEW, NEEDS_INFORMATION, CONFIRMED, DISMISSED, ESCALATED, CLOSED.
+
+# Exigences
+
+- Afficher les faits et événements liés.
+- Séparer score technique, sévérité et décision humaine.
+- Exiger commentaire pour une décision finale.
+- Journaliser chaque transition.
+- Ne pas suspendre automatiquement un agent ou bénéficiaire sans règle validée.
+- Ne pas afficher les données médicales comme explication d'une alerte.
+- Les alertes financières restent désactivées si les données de prestations manquent.

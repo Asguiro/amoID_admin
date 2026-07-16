@@ -1,87 +1,70 @@
-# Welcome to React Router!
+# AMO ID Santé — Web Admin
 
-A modern, production-ready template for building full-stack React applications using React Router.
+Back-office institutionnel CANAM / AMO ID Santé Mali : supervision, audit, reporting et traitement des alertes.
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
+## Stack
 
-## Features
+- React Router 8 Framework Mode (SSR)
+- TypeScript strict
+- Tailwind CSS 4 + daisyUI (thème `amo-admin`)
+- Session cookie signée `httpOnly`
+- Couches `app/services` (métier) et `app/server` (adapters SSR)
 
-- 🚀 Server-side rendering
-- ⚡️ Hot Module Replacement (HMR)
-- 📦 Asset bundling and optimization
-- 🔄 Data loading and mutations
-- 🔒 TypeScript by default
-- 🎉 TailwindCSS for styling
-- 📖 [React Router docs](https://reactrouter.com/)
-
-## Getting Started
-
-### Installation
-
-Install the dependencies:
+## Démarrage
 
 ```bash
+cp .env.example .env
 npm install
-```
-
-### Development
-
-Start the development server with HMR:
-
-```bash
 npm run dev
 ```
 
-Your application will be available at `http://localhost:5173`.
+Application : `http://localhost:5173`
 
-## Building for Production
+### Compte démo
 
-Create a production build:
+| E-mail | Mot de passe | Rôle |
+|---|---|---|
+| `admin@amo.ml` | `Admin123!` | ADMIN_NATIONAL |
+| `superviseur@amo.ml` | `Super123!` | SUPERVISEUR_REGIONAL |
 
-```bash
-npm run build
+## Architecture
+
+```txt
+route (loader/action)
+  → app/server/*     guards, session, client API, orchestration
+  → app/services/*   traitements métier
+  → API NestJS / mocks
 ```
 
-## Deployment
+Règles :
 
-### Docker Deployment
+- jamais de token API dans le navigateur ;
+- filtres / période / pagination dans les **search params** (SSR via URL) ;
+- loading visible (`PendingOutlet` + skeletons) sur tout chargement de data ;
+- `ErrorBoundary` par route data — pas d’écran blanc.
 
-To build and run using Docker:
+## Scripts
 
-```bash
-docker build -t my-app .
+| Commande | Rôle |
+|---|---|
+| `npm run dev` | Serveur de développement |
+| `npm run build` | Build production |
+| `npm run start` | Servir le build |
+| `npm run typecheck` | Types |
+| `npm test` | Tests unitaires (Vitest) |
+| `npm run test:e2e` | Tests E2E (Playwright) |
+| `npm run check` | typecheck + unit + e2e |
 
-# Run the container
-docker run -p 3000:3000 my-app
-```
+## Variables d'environnement
 
-The containerized application can be deployed to any platform that supports Docker, including:
+Voir `.env.example` :
 
-- AWS ECS
-- Google Cloud Run
-- Azure Container Apps
-- Digital Ocean App Platform
-- Fly.io
-- Railway
+- `API_URL` — base URL API (server-only)
+- `SESSION_SECRET` — secret cookie session
+- `APP_ENV` — `development` \| `test` \| `production`
 
-### DIY Deployment
+Ne pas exposer de secrets via `VITE_*`.
 
-If you're familiar with deploying Node applications, the built-in app server is production-ready.
+## Documentation
 
-Make sure to deploy the output of `npm run build`
-
-```
-├── package.json
-├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
-├── build/
-│   ├── client/    # Static assets
-│   └── server/    # Server-side code
-```
-
-## Styling
-
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
-
----
-
-Built with ❤️ using React Router.
+Le cadrage produit et technique est dans `docs/`. Les règles Cursor sont dans `.cursor/`.

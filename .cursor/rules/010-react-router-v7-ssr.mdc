@@ -1,0 +1,39 @@
+---
+description: React Router v7 Framework Mode et SSR
+alwaysApply: true
+---
+
+# SSR
+
+- `react-router.config.ts` doit conserver `ssr: true`.
+- Les routes sont déclarées explicitement dans `app/routes.ts` et éventuellement composées depuis `app/router/*.routes.ts`.
+- Utiliser des route modules, layouts imbriqués et `<Outlet />`.
+
+# Données
+
+- Loader pour toute lecture initiale.
+- Action pour toute mutation.
+- `useFetcher` pour une mutation sans navigation.
+- `useNavigation` pour le pending global.
+- `useRevalidator` seulement lorsqu'une revalidation explicite est nécessaire.
+- Search params pour filtres, tri, pagination, période et onglet partageable.
+
+# Pages
+
+Une page exporte des fonctions courtes :
+
+```ts
+export { agentsListLoader as loader } from '~/server/agents/loaders/agents.server';
+export { agentsListAction as action } from '~/server/agents/actions/agents.server';
+```
+
+Ne pas mettre de fetch, session, RBAC ou parsing métier lourd dans le composant.
+
+# Erreurs
+
+- 401 : détruire ou renouveler la session selon la stratégie validée.
+- 403 : route `/unauthorized` ou boundary dédiée.
+- 404 : catch-all.
+- 409 : message de conflit + revalidation.
+- 422 : erreurs de champs.
+- 500 : message générique avec correlationId.

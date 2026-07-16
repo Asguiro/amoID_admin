@@ -1,0 +1,45 @@
+---
+description: Design system AMO pour Tailwind CSS et daisyUI
+alwaysApply: true
+---
+
+# Identité
+
+- Fond : #F5F7FB
+- Carte : #FFFFFF
+- Texte principal : #0B1B33
+- Primaire : #0E5B3B
+- Succès : #18A058
+- Attention : #F59E0B
+- Erreur : #EF4444
+
+# Composants
+
+Utiliser les composants partagés du projet avant les classes daisyUI brutes :
+
+- AppCard
+- AppButton
+- StatusBadge
+- PageHeader
+- DataTable
+- EmptyState
+- ErrorState
+- LoadingState
+- ConfirmDialog
+- ChartCard
+
+# Règles visuelles
+
+- Une seule action principale dominante.
+- Maximum deux couleurs fortes par zone.
+- Pas de gradient excessif.
+- Pas d'ombre lourde.
+- Pas de template SaaS violet/bleu générique.
+- Radius cartes 20–24 px.
+- Lignes de tableau 52–60 px.
+- Titre principal non tronqué.
+- Icônes Lucide en traits simples.
+
+# États
+
+Chaque page de données gère loading, empty, error et success.
