@@ -32,16 +32,17 @@ const KPI_META: Record<
   { icon: LucideIcon; tint: "mint" | "gold" | "sky" | "rose"; featured?: boolean }
 > = {
   enrollments: { icon: UserRoundCheck, tint: "mint", featured: true },
-  verifications: { icon: Fingerprint, tint: "sky" },
-  alerts: { icon: ShieldAlert, tint: "rose" },
-  beneficiaries: { icon: Users, tint: "gold" },
-  qr: { icon: QrCode, tint: "mint" },
-  agents: { icon: Activity, tint: "sky" },
+  verifications_ok: { icon: Fingerprint, tint: "sky" },
+  verifications_doubt: { icon: ShieldAlert, tint: "rose" },
+  qr_active: { icon: QrCode, tint: "mint" },
+  pending_sync: { icon: Activity, tint: "gold" },
+  incomplete_dossiers: { icon: Users, tint: "gold" },
+  provisional_pending: { icon: UserRoundCheck, tint: "gold" },
+  alerts_critical: { icon: ShieldAlert, tint: "rose" },
 };
 
 function resolveKpiMeta(id: string, index: number) {
-  const key = Object.keys(KPI_META).find((k) => id.toLowerCase().includes(k));
-  if (key) return KPI_META[key]!;
+  if (KPI_META[id]) return KPI_META[id];
   const fallbacks = Object.values(KPI_META);
   return fallbacks[index % fallbacks.length]!;
 }
@@ -62,7 +63,7 @@ export function DashboardPage({ overview }: DashboardPageProps) {
         title="Vue d'ensemble"
         description="Pilotage opérationnel des enrôlements, vérifications et alertes."
         actions={
-          <Form method="get" className="flex flex-wrap gap-1 rounded-2xl bg-base-100 p-1 shadow-[0_8px_24px_rgb(11_27_51/0.05)]">
+          <Form method="get" aria-label="Période du tableau de bord" className="join flex flex-wrap rounded-2xl bg-base-100 p-1 shadow-[0_8px_24px_rgb(11_27_51/0.05)]">
             {PERIODS.map((period) => (
               <button
                 key={period.value}
@@ -70,11 +71,12 @@ export function DashboardPage({ overview }: DashboardPageProps) {
                 name="period"
                 value={period.value}
                 className={clsx(
-                  "btn btn-sm rounded-xl border-0",
+                  "btn btn-sm join-item rounded-xl border-0",
                   overview.period === period.value
                     ? "btn-primary"
                     : "btn-ghost",
                 )}
+                aria-pressed={overview.period === period.value}
               >
                 {period.label}
               </button>
@@ -89,7 +91,8 @@ export function DashboardPage({ overview }: DashboardPageProps) {
           description="Aucune donnée de pilotage n’est disponible pour la période sélectionnée."
         />
       ) : (
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" aria-labelledby="dashboard-kpi-title">
+          <h2 id="dashboard-kpi-title" className="sr-only">Indicateurs clés</h2>
           {overview.kpis.map((kpi, index) => {
             const meta = resolveKpiMeta(kpi.id, index);
             return (
@@ -99,6 +102,7 @@ export function DashboardPage({ overview }: DashboardPageProps) {
                 value={kpi.value}
                 unit={kpi.unit}
                 trendPercent={kpi.trendPercent}
+                trendIntent={kpi.trendIntent}
                 icon={meta.icon}
                 tint={meta.tint}
                 featured={Boolean(meta.featured && index === 0)}
@@ -115,9 +119,9 @@ export function DashboardPage({ overview }: DashboardPageProps) {
 
       {overview.series.length > 0 ? (
         <ChartCard
-          title="Évolution"
-          description="Tendance des enrôlements, vérifications et alertes sur la période."
-          summary={`Graphique de tendance comportant ${overview.series.length} points pour les enrôlements, vérifications et alertes.`}
+          title="Évolution des enrôlements"
+          description="Volume d’enrôlements sur la période sélectionnée."
+          summary={`Courbe simple de ${overview.series.length} points représentant l’évolution des enrôlements.`}
           className="mt-6 amo-animate-in amo-animate-in-delay-1"
         >
           <TrendChartLazy series={overview.series} />
@@ -200,7 +204,7 @@ export function DashboardPage({ overview }: DashboardPageProps) {
                     <p className="font-medium text-secondary">{item.label}</p>
                     <p className="text-xs text-base-content/55">{item.actor}</p>
                   </div>
-                  <time className="shrink-0 text-xs text-base-content/45">
+                  <time dateTime={item.createdAt} className="shrink-0 text-xs text-base-content/45">
                     {formatDistanceToNow(new Date(item.createdAt), {
                       addSuffix: true,
                       locale: fr,
@@ -215,7 +219,10 @@ export function DashboardPage({ overview }: DashboardPageProps) {
 
       <p className="mt-5 text-xs text-base-content/45">
         Données générées le{" "}
-        {new Date(overview.generatedAt).toLocaleString("fr-FR")} — période{" "}
+        <time dateTime={overview.generatedAt}>
+          {new Date(overview.generatedAt).toLocaleString("fr-FR")}
+        </time>{" "}
+        — période{" "}
         {overview.period}
       </p>
     </div>

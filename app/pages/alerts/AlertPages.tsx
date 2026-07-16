@@ -6,8 +6,11 @@ import { PageHeader } from "~/components/layouts/PageHeader";
 import { AppCard } from "~/components/ui/AppCard";
 import { AuditTimeline } from "~/components/ui/AuditTimeline";
 import { DataTable } from "~/components/ui/DataTable";
+import { DetailSectionCard } from "~/components/ui/DetailSectionCard";
 import { FilterBar } from "~/components/ui/FilterBar";
+import { FilterSelect } from "~/components/ui/FilterSelect";
 import { SearchField } from "~/components/ui/SearchField";
+import { PreparedMediaSlot } from "~/components/ui/MediaGallery";
 import { AlertSeverityBadge, AlertStatusBadge } from "~/components/ui/StatusBadge";
 import { CsrfField } from "~/components/security/CsrfProvider";
 import type {
@@ -17,6 +20,7 @@ import type {
   ListQuery,
   PaginatedResponse,
 } from "~/types/admin";
+import { buildListHref, countActiveListFilters } from "~/utils/search-params";
 
 const columns: ColumnDef<AlertItem>[] = [
   {
@@ -51,6 +55,7 @@ const statuses: Array<{ value: AlertStatus; label: string }> = [
   { value: "NEW", label: "Nouvelle" },
   { value: "ASSIGNED", label: "Affectée" },
   { value: "UNDER_REVIEW", label: "En analyse" },
+  { value: "NEEDS_INFORMATION", label: "Info requise" },
   { value: "CONFIRMED", label: "Confirmée" },
   { value: "DISMISSED", label: "Sans suite" },
   { value: "ESCALATED", label: "Escaladée" },
@@ -64,13 +69,8 @@ export function AlertsListPage({
   result: PaginatedResponse<AlertItem>;
   query: ListQuery;
 }) {
-  const buildPageHref = (page: number) => {
-    const params = new URLSearchParams();
-    if (query.q) params.set("q", query.q);
-    if (query.status) params.set("status", query.status);
-    params.set("page", String(page));
-    return `/alerts?${params}`;
-  };
+  const buildPageHref = (page: number, pageSize = query.pageSize) =>
+    buildListHref("/alerts", query, { page, pageSize });
   return (
     <>
       <PageHeader
@@ -79,25 +79,23 @@ export function AlertsListPage({
         actions={<Link className="btn btn-outline h-10 rounded-xl" to="/fraud/rules">Voir les règles</Link>}
       />
       <Form method="get">
-        <FilterBar>
+        <FilterBar
+          activeFilterCount={countActiveListFilters(query)}
+          resetHref="/alerts"
+          label="Rechercher et filtrer les alertes"
+        >
           <SearchField
             defaultValue={query.q}
             placeholder="Alerte, analyste ou établissement…"
           />
-          <select
+          <FilterSelect
             name="status"
-            defaultValue={query.status ?? ""}
-            className="amo-select w-full sm:w-48"
-            aria-label="Statut"
-          >
-            <option value="">Tous les statuts</option>
-            {statuses.map((item) => (
-              <option key={item.value} value={item.value}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-          <button className="amo-filter-btn" type="submit">
+            value={query.status}
+            label="Filtrer par statut"
+            allLabel="Tous les statuts"
+            options={statuses}
+          />
+          <button className="btn btn-primary h-11 rounded-2xl px-5" type="submit">
             Filtrer
           </button>
         </FilterBar>
@@ -116,7 +114,8 @@ export function AlertsListPage({
 
 const nextStatuses: Partial<Record<AlertStatus, AlertStatus[]>> = {
   ASSIGNED: ["UNDER_REVIEW"],
-  UNDER_REVIEW: ["CONFIRMED", "DISMISSED", "ESCALATED"],
+  UNDER_REVIEW: ["NEEDS_INFORMATION", "CONFIRMED", "DISMISSED", "ESCALATED"],
+  NEEDS_INFORMATION: ["UNDER_REVIEW"],
   CONFIRMED: ["CLOSED"],
   DISMISSED: ["CLOSED"],
   ESCALATED: ["CLOSED"],
@@ -168,6 +167,15 @@ export function AlertDetailPage({
             <h2 className="amo-display text-lg font-semibold text-secondary">Signal détecté</h2>
             <p className="mt-3 leading-relaxed text-base-content/75">{alert.description}</p>
           </AppCard>
+          <DetailSectionCard
+            title="Preuves et pièces jointes"
+            description="Les références de vérification, captures ou documents seront présentées ici lorsqu’elles seront reliées à l’alerte."
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <PreparedMediaSlot label="Capture ou événement lié" kind="FACE_CAPTURE" />
+              <PreparedMediaSlot label="Pièce jointe d’investigation" kind="OTHER" />
+            </div>
+          </DetailSectionCard>
           <AppCard padding="lg">
             <h2 className="amo-display mb-5 text-lg font-semibold text-secondary">Chronologie</h2>
             <AuditTimeline items={alert.timeline} />

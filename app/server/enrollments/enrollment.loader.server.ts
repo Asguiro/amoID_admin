@@ -2,6 +2,7 @@ import { permissions } from "~/config/permissions";
 import {
   getEnrollment,
   listEnrollments,
+  rejectEnrollment,
   requestManualReview,
   returnEnrollmentForCorrection,
   validateEnrollment,
@@ -26,6 +27,7 @@ export async function loadEnrollment(request: Request, id: string) {
     enrollment,
     canValidate: user.permissions.includes(permissions.enrollmentValidate),
     canReturn: user.permissions.includes(permissions.enrollmentReturnForCorrection),
+    canReject: user.permissions.includes(permissions.enrollmentReject),
   };
 }
 
@@ -40,10 +42,26 @@ export async function mutateEnrollment(request: Request, id: string) {
     return { enrollment: await validateEnrollment(id), success: "Enrôlement validé." };
   }
 
+  if (intent === "reject") {
+    await requirePermission(request, permissions.enrollmentReject);
+    if (!comment) return { error: "Le motif de rejet est obligatoire." };
+    return {
+      enrollment: await rejectEnrollment(id, comment),
+      success: "Enrôlement rejeté.",
+    };
+  }
+
   await requirePermission(request, permissions.enrollmentReturnForCorrection);
   if (!comment) return { error: "Le commentaire est obligatoire." };
-  const enrollment = intent === "manual-review"
-    ? await requestManualReview(id, comment)
-    : await returnEnrollmentForCorrection(id, comment);
-  return { enrollment, success: intent === "manual-review" ? "Analyse manuelle demandée." : "Dossier retourné pour correction." };
+  const enrollment =
+    intent === "manual-review"
+      ? await requestManualReview(id, comment)
+      : await returnEnrollmentForCorrection(id, comment);
+  return {
+    enrollment,
+    success:
+      intent === "manual-review"
+        ? "Analyse manuelle demandée."
+        : "Dossier retourné pour correction.",
+  };
 }

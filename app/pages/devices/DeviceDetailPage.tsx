@@ -1,14 +1,24 @@
 import { Form, useNavigation } from "react-router";
 
 import { PageHeader } from "~/components/layouts/PageHeader";
-import { AppCard } from "~/components/ui/AppCard";
 import { DetailField, DetailGrid } from "~/components/ui/DetailField";
+import { DetailSectionCard } from "~/components/ui/DetailSectionCard";
 import { FormField } from "~/components/ui/FormField";
 import { DeviceStatusBadge } from "~/components/ui/StatusBadge";
 import type { Device } from "~/types/admin";
 import { CsrfField } from "~/components/security/CsrfProvider";
 
-export function DeviceDetailPage({ device }: { device: Device }) {
+export function DeviceDetailPage({
+  device,
+  canTrust = false,
+  canRevoke = true,
+  actionData,
+}: {
+  device: Device;
+  canTrust?: boolean;
+  canRevoke?: boolean;
+  actionData?: { error?: string };
+}) {
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
   const date = (value: string) =>
@@ -21,16 +31,19 @@ export function DeviceDetailPage({ device }: { device: Device }) {
     <>
       <PageHeader
         title={device.label}
-        description={device.platform}
+        description={`${device.platform} · ${device.agentName} · ${device.establishmentName}`}
         backTo="/devices"
         backLabel="Retour aux appareils"
         badge={<DeviceStatusBadge status={device.status} />}
       />
 
-      <AppCard className="max-w-3xl" padding="lg">
-        <h2 className="amo-display mb-5 text-lg font-semibold text-secondary">
-          Terminal
-        </h2>
+      {actionData?.error ? (
+        <div role="alert" className="alert alert-error mb-4 max-w-3xl">
+          {actionData.error}
+        </div>
+      ) : null}
+
+      <DetailSectionCard className="max-w-4xl" title="Terminal et synchronisation">
         <DetailGrid>
           <DetailField label="Agent">{device.agentName}</DetailField>
           <DetailField label="Établissement">
@@ -40,12 +53,44 @@ export function DeviceDetailPage({ device }: { device: Device }) {
             {date(device.lastSeenAt)}
           </DetailField>
           <DetailField label="Enrôlé le">{date(device.enrolledAt)}</DetailField>
+          <DetailField label="Sync en attente">
+            {String(device.pendingSyncCount ?? 0)}
+          </DetailField>
+          <DetailField label="Dernière sync">
+            {device.lastSyncAt ? date(device.lastSyncAt) : "—"}
+          </DetailField>
           <DetailField label="Identifiant" mono className="sm:col-span-2">
             {device.id}
           </DetailField>
         </DetailGrid>
 
-        {device.status !== "REVOKED" ? (
+        {canTrust && device.status === "PENDING" ? (
+          <Form
+            method="post"
+            className="mt-8 space-y-4 border-t border-base-200 pt-6"
+          >
+            <CsrfField />
+            <FormField label="Motif d’approbation">
+              <textarea
+                required
+                name="reason"
+                className="amo-textarea"
+                placeholder="Indiquez la raison de l’approbation…"
+              />
+            </FormField>
+            <button
+              disabled={busy}
+              name="intent"
+              value="trust"
+              className="btn btn-success h-11 rounded-xl"
+              type="submit"
+            >
+              Approuver l’appareil
+            </button>
+          </Form>
+        ) : null}
+
+        {canRevoke && device.status !== "REVOKED" ? (
           <Form
             method="post"
             className="mt-8 space-y-4 border-t border-base-200 pt-6"
@@ -70,7 +115,7 @@ export function DeviceDetailPage({ device }: { device: Device }) {
             </button>
           </Form>
         ) : null}
-      </AppCard>
+      </DetailSectionCard>
     </>
   );
 }

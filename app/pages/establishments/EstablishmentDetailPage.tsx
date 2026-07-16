@@ -1,8 +1,9 @@
 import { Link } from "react-router";
 
 import { PageHeader } from "~/components/layouts/PageHeader";
-import { AppCard } from "~/components/ui/AppCard";
 import { DetailField, DetailGrid } from "~/components/ui/DetailField";
+import { DetailSectionCard } from "~/components/ui/DetailSectionCard";
+import { PreparedMediaSlot } from "~/components/ui/MediaGallery";
 import { StatusBadge } from "~/components/ui/StatusBadge";
 import type { Establishment } from "~/types/admin";
 
@@ -22,7 +23,7 @@ export function EstablishmentDetailPage({
     <>
       <PageHeader
         title={establishment.name}
-        description="Fiche de l’établissement"
+        description={`${typeLabels[establishment.type]} · ${establishment.city} · ${establishment.region}`}
         backTo="/establishments"
         backLabel="Retour aux établissements"
         badge={
@@ -42,10 +43,8 @@ export function EstablishmentDetailPage({
         }
       />
 
-      <AppCard className="max-w-4xl" padding="lg">
-        <h2 className="amo-display mb-5 text-lg font-semibold text-secondary">
-          Informations
-        </h2>
+      <div className="grid max-w-5xl gap-5 lg:grid-cols-[1fr_18rem]">
+      <DetailSectionCard title="Informations">
         <DetailGrid>
           <DetailField label="Type">
             {typeLabels[establishment.type]}
@@ -64,7 +63,11 @@ export function EstablishmentDetailPage({
             )}
           </DetailField>
         </DetailGrid>
-      </AppCard>
+      </DetailSectionCard>
+      <DetailSectionCard title="Identité visuelle">
+        <PreparedMediaSlot label="Logo ou photo de l’établissement" kind="OTHER" />
+      </DetailSectionCard>
+      </div>
     </>
   );
 }

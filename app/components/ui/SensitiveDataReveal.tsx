@@ -7,7 +7,7 @@ interface SensitiveDataRevealProps {
   maskedValue: string;
   revealedValue?: string;
   canReveal: boolean;
-  onReveal: () => void;
+  onReveal?: () => void;
 }
 
 export function SensitiveDataReveal({

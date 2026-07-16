@@ -1,7 +1,13 @@
 import { redirect } from "react-router";
 
 import { permissions } from "~/config/permissions";
-import { getDevice, listDevices, revokeDevice } from "~/services/devices/devices.service";
+import {
+  getDevice,
+  listDevices,
+  listPendingSyncDevices,
+  revokeDevice,
+  trustDevice,
+} from "~/services/devices/devices.service";
 import { parseListSearchParams } from "~/utils/search-params";
 
 import { requirePermission } from "../auth/require-permission.server";
@@ -14,24 +20,58 @@ function notFound(): never {
 export async function loadDevicesList(request: Request) {
   await requirePermission(request, permissions.deviceRead);
   const query = parseListSearchParams(new URL(request.url).searchParams);
-  return { devices: await listDevices(query), query };
+  const [devices, pendingSync] = await Promise.all([
+    listDevices(query),
+    listPendingSyncDevices(),
+  ]);
+  return { devices, query, pendingSync };
 }
 
 export async function loadDeviceDetail(request: Request, id: string) {
-  await requirePermission(request, permissions.deviceRead);
+  const user = await requirePermission(request, permissions.deviceRead);
   const device = await getDevice(id);
   if (!device) notFound();
-  return { device };
+  return {
+    device,
+    canTrust: user.permissions.includes(permissions.deviceTrust),
+    canRevoke: user.permissions.includes(permissions.deviceRevoke),
+  };
 }
 
-export async function revokeDeviceAction(request: Request, id: string) {
+export async function mutateDeviceAction(request: Request, id: string) {
   await requireCsrfToken(request);
-  await requirePermission(request, permissions.deviceRevoke);
   const formData = await request.formData();
-  if (String(formData.get("intent")) !== "revoke") {
-    throw new Response("Action invalide", { status: 400 });
+  const intent = String(formData.get("intent") ?? "");
+  const reason = String(formData.get("reason") ?? "").trim();
+
+  if (intent === "trust") {
+    await requirePermission(request, permissions.deviceTrust);
+    try {
+      const device = await trustDevice(id, reason);
+      if (!device) notFound();
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : "Approbation impossible.",
+      };
+    }
+    return redirect(`/devices/${id}`);
   }
-  const device = await revokeDevice(id, String(formData.get("reason") ?? "").trim());
-  if (!device) notFound();
-  return redirect(`/devices/${id}`);
+
+  if (intent === "revoke") {
+    await requirePermission(request, permissions.deviceRevoke);
+    try {
+      const device = await revokeDevice(id, reason);
+      if (!device) notFound();
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : "Révocation impossible.",
+      };
+    }
+    return redirect(`/devices/${id}`);
+  }
+
+  throw new Response("Action invalide", { status: 400 });
 }
+
+/** @deprecated use mutateDeviceAction */
+export const revokeDeviceAction = mutateDeviceAction;

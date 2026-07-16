@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   getEnrollment,
+  rejectEnrollment,
   resetEnrollmentsForTests,
   returnEnrollmentForCorrection,
   validateEnrollment,
@@ -29,6 +30,17 @@ describe("enrollment.service", () => {
   it("refuse un retour sans commentaire", async () => {
     await expect(returnEnrollmentForCorrection("enr_001", "  ")).rejects.toThrow(
       "Le commentaire est obligatoire.",
+    );
+  });
+
+  it("rejette un enrôlement avec motif", async () => {
+    const result = await rejectEnrollment("enr_001", "Doublon confirmé");
+    expect(result.status).toBe("REJECTED");
+  });
+
+  it("refuse un rejet sans motif", async () => {
+    await expect(rejectEnrollment("enr_001", " ")).rejects.toThrow(
+      "Le motif de rejet est obligatoire.",
     );
   });
 });

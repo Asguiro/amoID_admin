@@ -18,6 +18,7 @@ import { permissions, type Permission } from "./permissions";
 export interface NavigationItem {
   label: string;
   to: string;
+  activePrefixes?: readonly string[];
   icon: typeof LayoutDashboard;
   permissions: readonly Permission[];
 }
@@ -76,8 +77,9 @@ export const navigationItems: NavigationItem[] = [
     permissions: [permissions.temporaryQrRead],
   },
   {
-    label: "Alertes & fraude",
+    label: "Alertes et fraude",
     to: "/alerts",
+    activePrefixes: ["/fraud"],
     icon: ShieldAlert,
     permissions: [permissions.alertRead],
   },
@@ -88,7 +90,7 @@ export const navigationItems: NavigationItem[] = [
     permissions: [permissions.reportRead],
   },
   {
-    label: "Audit",
+    label: "Journal d’audit",
     to: "/audit",
     icon: Activity,
     permissions: [permissions.auditRead],
@@ -96,6 +98,7 @@ export const navigationItems: NavigationItem[] = [
   {
     label: "Paramètres",
     to: "/settings/access",
+    activePrefixes: ["/settings"],
     icon: Settings,
     permissions: [permissions.settingsRead],
   },

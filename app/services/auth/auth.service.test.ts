@@ -45,6 +45,12 @@ describe("getDashboardOverview", () => {
     expect(month.kpis[0]?.value).toBeGreaterThan(week.kpis[0]?.value ?? 0);
     expect(week.series).toHaveLength(7);
     expect(month.series).toHaveLength(14);
+    expect(
+      week.kpis.find((kpi) => kpi.id === "alerts_critical")?.trendIntent,
+    ).toBe("negative");
+    expect(
+      week.kpis.find((kpi) => kpi.id === "incomplete_dossiers")?.trendIntent,
+    ).toBe("positive");
   });
 
   it("returns empty dashboard collections when requested", async () => {

@@ -7,6 +7,7 @@ interface MetricCardProps {
   value: number;
   unit?: string;
   trendPercent: number;
+  trendIntent?: "positive" | "negative" | "neutral";
   icon?: LucideIcon;
   featured?: boolean;
   tint?: "mint" | "gold" | "sky" | "rose";
@@ -25,18 +26,27 @@ export function MetricCard({
   value,
   unit,
   trendPercent,
+  trendIntent,
   icon: Icon,
   featured = false,
   tint = "mint",
   className,
 }: MetricCardProps) {
   const positive = trendPercent >= 0;
+  const intent = trendIntent ?? (positive ? "positive" : "negative");
+  const trendText =
+    intent === "positive"
+      ? "Évolution favorable"
+      : intent === "negative"
+        ? "Évolution à surveiller"
+        : "Évolution neutre";
 
   return (
     <article
       className={clsx(
-        "relative overflow-hidden rounded-3xl p-5",
+        "stat relative min-w-0 overflow-hidden rounded-3xl p-5",
         featured ? "amo-metric-featured" : clsx("amo-card border-0", tintClass[tint]),
+        featured && "amo-pattern-surface",
         className,
       )}
     >
@@ -50,18 +60,19 @@ export function MetricCard({
         />
       ) : null}
 
-      <p
+      <dl className="relative z-[1]">
+      <dt
         className={clsx(
-          "text-sm font-medium",
+          "stat-title whitespace-normal text-sm font-medium",
           featured ? "text-white/80" : "text-base-content/60",
         )}
       >
         {label}
-      </p>
+      </dt>
 
-      <p
+      <dd
         className={clsx(
-          "amo-display mt-2 text-3xl font-semibold tracking-tight",
+          "stat-value amo-display mt-2 whitespace-normal text-3xl font-semibold tracking-tight",
           featured ? "text-white" : "text-secondary",
         )}
       >
@@ -76,16 +87,18 @@ export function MetricCard({
             {unit}
           </span>
         ) : null}
-      </p>
+      </dd>
 
-      <p
+      <dd
         className={clsx(
-          "mt-3 inline-flex items-center gap-1 text-sm font-medium",
+          "stat-desc mt-3 inline-flex whitespace-normal items-center gap-1 text-sm font-medium",
           featured
             ? "text-white/90"
-            : positive
+            : intent === "positive"
               ? "text-success"
-              : "text-error",
+              : intent === "negative"
+                ? "text-error"
+                : "text-base-content/60",
         )}
       >
         {positive ? (
@@ -94,8 +107,9 @@ export function MetricCard({
           <TrendingDown className="size-4" aria-hidden />
         )}
         {positive ? "+" : ""}
-        {trendPercent.toFixed(1)} % vs période précédente
-      </p>
+        {trendPercent.toFixed(1)} % · {trendText}
+      </dd>
+      </dl>
     </article>
   );
 }

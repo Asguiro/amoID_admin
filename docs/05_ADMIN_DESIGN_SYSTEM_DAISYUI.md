@@ -61,9 +61,40 @@ AuditTimeline
 AlertSeverityBadge
 ChartCard
 ExportButton
+FilterSelect
+DetailPageLayout
+DetailSectionCard
+EntityAvatar
+PreparedMediaSlot
+MediaGallery
+DocumentRow
+MediaPreviewDialog
 ```
 
 Les pages utilisent ces composants. Elles ne combinent pas librement des classes daisyUI différentes pour recréer le même pattern.
+
+### Recherche et filtres
+
+- aucune recherche globale dans la topbar ;
+- chaque recherche est locale, contextualisée et placée dans `FilterBar` ;
+- `SearchField` utilise la structure `input` daisyUI sans icône positionnée au-dessus du texte ;
+- les filtres actifs sont comptés et peuvent être réinitialisés ;
+- pagination, taille de page et filtres conservent un état URL partageable.
+
+### Détails et médias
+
+- `EntityAvatar` affiche une image autorisée ou un placeholder par initiales ;
+- `DetailSectionCard` standardise titre, description, badge et action ;
+- `MediaAsset` distingue contenu disponible, absent, restreint, en traitement et source non connectée ;
+- aucune image sensible n’est chargée ou révélée sans permission explicite ;
+- un emplacement préparatoire ne doit jamais simuler un document ou une capture inexistant.
+
+### Statistiques
+
+- les KPI utilisent les slots `stat-*` daisyUI dans une grille AMO responsive ;
+- la direction numérique et l’impact métier d’une tendance sont distincts ;
+- les motifs AMO restent discrets et réservés aux surfaces mises en avant ;
+- les graphiques sont simples et actionnables : une courbe ou des barres, avec titre, période et résumé textuel.
 
 ## 4. Thème
 

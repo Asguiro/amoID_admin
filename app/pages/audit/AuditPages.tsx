@@ -2,13 +2,16 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Form, Link } from "react-router";
 
 import { PageHeader } from "~/components/layouts/PageHeader";
-import { AppCard } from "~/components/ui/AppCard";
 import { AuditTimeline } from "~/components/ui/AuditTimeline";
 import { DataTable } from "~/components/ui/DataTable";
+import { DetailPageLayout } from "~/components/ui/DetailPageLayout";
+import { DetailSectionCard } from "~/components/ui/DetailSectionCard";
 import { FilterBar } from "~/components/ui/FilterBar";
+import { FilterSelect } from "~/components/ui/FilterSelect";
 import { SearchField } from "~/components/ui/SearchField";
 import { StatusBadge } from "~/components/ui/StatusBadge";
 import type { AuditEvent, ListQuery, PaginatedResponse } from "~/types/admin";
+import { buildListHref, countActiveListFilters } from "~/utils/search-params";
 
 const statusMeta = {
   SUCCESS: { label: "Réussi", tone: "success" },
@@ -52,13 +55,8 @@ export function AuditListPage({
   result: PaginatedResponse<AuditEvent>;
   query: ListQuery;
 }) {
-  const buildPageHref = (page: number) => {
-    const params = new URLSearchParams();
-    if (query.q) params.set("q", query.q);
-    if (query.status) params.set("status", query.status);
-    params.set("page", String(page));
-    return `/audit?${params}`;
-  };
+  const buildPageHref = (page: number, pageSize = query.pageSize) =>
+    buildListHref("/audit", query, { page, pageSize });
 
   return (
     <>
@@ -67,23 +65,27 @@ export function AuditListPage({
         description="Traçabilité en lecture seule des accès, décisions et opérations sensibles."
       />
       <Form method="get">
-        <FilterBar>
+        <FilterBar
+          activeFilterCount={countActiveListFilters(query)}
+          resetHref="/audit"
+          label="Rechercher et filtrer le journal d’audit"
+        >
           <SearchField
             defaultValue={query.q}
             placeholder="Action, acteur, cible ou corrélation…"
           />
-          <select
+          <FilterSelect
             name="status"
-            defaultValue={query.status ?? ""}
-            className="amo-select w-full sm:w-44"
-            aria-label="Résultat"
-          >
-            <option value="">Tous les résultats</option>
-            <option value="SUCCESS">Réussi</option>
-            <option value="DENIED">Refusé</option>
-            <option value="FAILED">Échoué</option>
-          </select>
-          <button className="amo-filter-btn" type="submit">
+            value={query.status}
+            label="Filtrer par résultat"
+            allLabel="Tous les résultats"
+            options={[
+              { value: "SUCCESS", label: "Réussi" },
+              { value: "DENIED", label: "Refusé" },
+              { value: "FAILED", label: "Échoué" },
+            ]}
+          />
+          <button className="btn btn-primary h-11 rounded-2xl px-5" type="submit">
             Filtrer
           </button>
         </FilterBar>
@@ -111,11 +113,27 @@ export function AuditDetailPage({ event }: { event: AuditEvent }) {
         backLabel="Retour au journal"
         badge={<StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>}
       />
-      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-        <AppCard padding="lg">
-          <h2 className="amo-display mb-5 text-lg font-semibold text-secondary">
-            Chronologie
-          </h2>
+      <DetailPageLayout
+        aside={
+          <DetailSectionCard title="Détails techniques">
+            <dl className="grid gap-5">
+              <div>
+                <dt className="text-xs font-semibold tracking-wide text-base-content/50 uppercase">Périmètre</dt>
+                <dd className="mt-1.5 text-sm font-medium text-secondary">{event.scope}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold tracking-wide text-base-content/50 uppercase">Cible</dt>
+                <dd className="mt-1.5 text-sm font-medium text-secondary">{event.target}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold tracking-wide text-base-content/50 uppercase">ID de corrélation</dt>
+                <dd className="mt-1.5 break-all font-mono text-xs font-medium text-secondary">{event.correlationId}</dd>
+              </div>
+            </dl>
+          </DetailSectionCard>
+        }
+      >
+        <DetailSectionCard title="Chronologie">
           <AuditTimeline
             items={[
               {
@@ -126,39 +144,8 @@ export function AuditDetailPage({ event }: { event: AuditEvent }) {
               },
             ]}
           />
-        </AppCard>
-        <AppCard padding="lg">
-          <h2 className="amo-display mb-5 text-lg font-semibold text-secondary">
-            Détails techniques
-          </h2>
-          <dl className="grid gap-5">
-            <div>
-              <dt className="text-xs font-semibold tracking-wide text-base-content/50 uppercase">
-                Périmètre
-              </dt>
-              <dd className="mt-1.5 text-sm font-medium text-secondary">
-                {event.scope}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold tracking-wide text-base-content/50 uppercase">
-                Cible
-              </dt>
-              <dd className="mt-1.5 text-sm font-medium text-secondary">
-                {event.target}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold tracking-wide text-base-content/50 uppercase">
-                ID de corrélation
-              </dt>
-              <dd className="mt-1.5 font-mono text-xs font-medium text-secondary">
-                {event.correlationId}
-              </dd>
-            </div>
-          </dl>
-        </AppCard>
-      </div>
+        </DetailSectionCard>
+      </DetailPageLayout>
     </>
   );
 }

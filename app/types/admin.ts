@@ -12,12 +12,31 @@ export type EnrollmentStatus =
   | "RETURNED"
   | "VALIDATED"
   | "REJECTED";
+export type EnrollmentSyncStatus = "SYNCED" | "PENDING_SYNC";
+export type FaceQualityLabel = "GOOD" | "ACCEPTABLE" | "POOR";
 export type VerificationOutcome =
   | "SUCCESS"
   | "DOUBT"
   | "FAILURE"
   | "MANUAL_REVIEW";
+export type VerificationDecision = "CONFIRM" | "REJECT" | "MANUAL";
+export type VerificationConfidenceLabel = "HIGH" | "MEDIUM" | "LOW";
+export type VerificationIdentifierType = "NINA" | "BIOMETRIC_CARD" | "AMO_NUMBER";
 export type TemporaryQrStatus = "ACTIVE" | "EXPIRED" | "REVOKED" | "USED";
+export type TemporaryQrReason =
+  | "LOST_CARD"
+  | "DAMAGED_CARD"
+  | "RENEWAL_PENDING"
+  | "OPERATIONAL";
+export type TemporaryQrDuration = "24H" | "72H" | "7D";
+export type BeneficiaryType = "PRIMARY" | "DEPENDENT";
+export type DossierCompletenessStatus = "COMPLETE" | "INCOMPLETE";
+export type BeneficiaryCoverageStatus =
+  | "ACTIVE"
+  | "SUSPENDED"
+  | "UPDATE_REQUIRED"
+  | "NOT_FOUND";
+export type BeneficiarySex = "FEMALE" | "MALE";
 export type AlertStatus =
   | "NEW"
   | "ASSIGNED"
@@ -31,6 +50,33 @@ export type AlertStatus =
 export type AlertSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export type DashboardPeriod = "7d" | "30d" | "90d";
 export type ExportJobStatus = "QUEUED" | "RUNNING" | "READY" | "FAILED";
+
+/**
+ * Mapping rôles mobile agent ↔ rôles dash admin (ne pas renommer les rôles admin).
+ * ADMIN → ADMIN_CENTRAL
+ * SUPERVISOR_REGIONAL → REGIONAL_SUPERVISOR
+ * SUPERVISOR_ESTABLISHMENT → ESTABLISHMENT_SUPERVISOR
+ * AGENT_ENROLLMENT → ENROLLMENT_AGENT
+ * AGENT_CARE_POINT → CARE_POINT_AGENT
+ * AUDITOR → AUDITOR
+ */
+export const MOBILE_TO_ADMIN_ROLE_MAP = {
+  ADMIN: "ADMIN_CENTRAL",
+  SUPERVISOR_REGIONAL: "REGIONAL_SUPERVISOR",
+  SUPERVISOR_ESTABLISHMENT: "ESTABLISHMENT_SUPERVISOR",
+  AGENT_ENROLLMENT: "ENROLLMENT_AGENT",
+  AGENT_CARE_POINT: "CARE_POINT_AGENT",
+  AUDITOR: "AUDITOR",
+} as const;
+
+export const ADMIN_ROLE_LABELS: Record<string, string> = {
+  ADMIN_CENTRAL: "Administrateur CANAM / AMO",
+  REGIONAL_SUPERVISOR: "Superviseur régional",
+  ESTABLISHMENT_SUPERVISOR: "Superviseur établissement",
+  ENROLLMENT_AGENT: "Agent d’enrôlement",
+  CARE_POINT_AGENT: "Agent point de soin",
+  AUDITOR: "Auditeur / contrôleur",
+};
 
 export interface Pagination {
   page: number;
@@ -51,6 +97,12 @@ export interface ListQuery {
   pageSize: number;
   status?: string;
   sort?: string;
+  coverageStatus?: string;
+  dossierStatus?: string;
+  beneficiaryType?: string;
+  channel?: string;
+  decision?: string;
+  reason?: string;
 }
 
 export interface AdminSessionUser {
@@ -70,12 +122,48 @@ export interface ApiErrorPayload {
   correlationId: string;
 }
 
+export type MediaKind =
+  | "PORTRAIT"
+  | "FACE_CAPTURE"
+  | "ID_DOCUMENT"
+  | "ATTESTATION"
+  | "QR"
+  | "OTHER";
+
+export type MediaAvailability =
+  | "AVAILABLE"
+  | "MISSING"
+  | "RESTRICTED"
+  | "PROCESSING"
+  | "SOURCE_NOT_CONNECTED";
+
+export interface MediaAsset {
+  id: string;
+  kind: MediaKind;
+  label: string;
+  availability: MediaAvailability;
+  mimeType?: string;
+  fileName?: string;
+  size?: number;
+  createdAt?: string;
+  source?: string;
+  referenceId?: string;
+  thumbnailUrl?: string;
+  previewUrl?: string;
+  permissions: {
+    canPreview: boolean;
+    canDownload: boolean;
+    canReveal: boolean;
+  };
+}
+
 export interface DashboardKpi {
   id: string;
   label: string;
   value: number;
   unit?: string;
   trendPercent: number;
+  trendIntent: "positive" | "negative" | "neutral";
 }
 
 export interface DashboardAlertPreview {
@@ -145,6 +233,8 @@ export interface Device {
   platform: string;
   lastSeenAt: string;
   enrolledAt: string;
+  pendingSyncCount?: number;
+  lastSyncAt?: string;
 }
 
 export interface Beneficiary {
@@ -152,18 +242,40 @@ export interface Beneficiary {
   displayName: string;
   ninaMasked: string;
   amoNumberMasked: string;
+  biometricCardNumberMasked: string;
   status: "ACTIVE" | "SUSPENDED" | "PENDING";
   establishmentName: string;
   region: string;
-  coverageStatus: "COVERED" | "LIMITED" | "EXPIRED";
+  coverageStatus: BeneficiaryCoverageStatus;
+  beneficiaryType: BeneficiaryType;
+  dossierStatus: DossierCompletenessStatus;
+  hasBiometrics: boolean;
+  hasHealthInfo: boolean;
+  lastVerifiedAt?: string;
   updatedAt: string;
+}
+
+export interface BeneficiaryHealthSummary {
+  hasEmergencyContact: boolean;
+  hasBloodGroup: boolean;
+  hasAllergies: boolean;
+  hasChronicConditions: boolean;
+  hasTreatments: boolean;
+  consentAccepted: boolean;
 }
 
 export interface BeneficiaryDetail extends Beneficiary {
   nina?: string;
   amoNumber?: string;
+  biometricCardNumber?: string;
   dateOfBirth?: string;
+  sex?: BeneficiarySex;
   phoneMasked: string;
+  address?: string;
+  city?: string;
+  primaryHolderId?: string;
+  primaryHolderName?: string;
+  healthSummary?: BeneficiaryHealthSummary;
   activity: Array<{ id: string; label: string; createdAt: string }>;
   coverageHistory: Array<{
     id: string;
@@ -174,6 +286,26 @@ export interface BeneficiaryDetail extends Beneficiary {
   }>;
 }
 
+export interface EnrollmentRequiredFieldsSnapshot {
+  firstName: string;
+  lastName: string;
+  birthDate: string;
+  sex: BeneficiarySex | "";
+  phoneCountryCode: string;
+  phoneNumber: string;
+  address: string;
+  city: string;
+  beneficiaryType: BeneficiaryType | "";
+  ninaMasked: string;
+  biometricCardNumberMasked: string;
+}
+
+export interface EnrollmentDuplicateCandidate {
+  beneficiaryId: string;
+  displayName: string;
+  hint: string;
+}
+
 export interface Enrollment {
   id: string;
   beneficiaryName: string;
@@ -182,20 +314,39 @@ export interface Enrollment {
   submittedBy: string;
   submittedAt: string;
   duplicateHints: string[];
+  isProvisional: boolean;
+  syncStatus: EnrollmentSyncStatus;
+  healthConsentAccepted: boolean;
+  faceCaptureSessionId?: string;
+  faceQualityLabel?: FaceQualityLabel;
+  requiredFields?: EnrollmentRequiredFieldsSnapshot;
+  duplicateCandidates?: EnrollmentDuplicateCandidate[];
+  healthSummary?: BeneficiaryHealthSummary;
 }
 
 export interface Verification {
   id: string;
   beneficiaryMasked: string;
+  beneficiaryId?: string;
   outcome: VerificationOutcome;
+  decision?: VerificationDecision;
+  confidenceLabel?: VerificationConfidenceLabel;
   establishmentName: string;
   agentName: string;
   channel: "BIOMETRIC" | "QR" | "MANUAL";
+  identifierType?: VerificationIdentifierType;
   createdAt: string;
 }
 
 export interface VerificationDetail extends Verification {
   device: string;
+  matchId?: string;
+  manualReason?: string;
+  manualReference?: string;
+  primaryHolderName?: string;
+  primaryHolderAmoNumberMasked?: string;
+  businessRuleNote?: string;
+  timeline: Array<{ id: string; label: string; actor: string; createdAt: string }>;
   metadata: {
     pointDeService: string;
     versionApplication: string;
@@ -206,6 +357,8 @@ export interface TemporaryQr {
   id: string;
   beneficiaryMasked: string;
   status: TemporaryQrStatus;
+  reason: TemporaryQrReason;
+  duration: TemporaryQrDuration;
   issuedBy: string;
   issuedAt: string;
   expiresAt: string;
@@ -214,6 +367,8 @@ export interface TemporaryQr {
 
 export interface TemporaryQrDetail extends TemporaryQr {
   beneficiaryId: string;
+  printReference?: string;
+  faceCaptureSessionId?: string;
   revokeReason?: string;
   audit: Array<{
     id: string;
@@ -275,4 +430,37 @@ export interface ExportJob {
   createdAt: string;
   downloadUrl?: string;
   error?: string;
+}
+
+export interface BiometricReportMetrics {
+  qualityGood: number;
+  qualityAcceptable: number;
+  qualityPoor: number;
+  livenessFailures: number;
+  manualFallbacks: number;
+}
+
+export interface TemporaryQrReportMetrics {
+  byReason: Record<TemporaryQrReason, number>;
+  byDuration: Record<TemporaryQrDuration, number>;
+  revocationRatePercent: number;
+  totalUsage: number;
+}
+
+export interface AppSettings {
+  maxQrDuration: TemporaryQrDuration;
+  maxFaceAttempts: number;
+  auditRetentionDays: number;
+  fraudMultiMatchThreshold: number;
+  fraudQrAbusePerDay: number;
+  fraudSyncBlockedHours: number;
+}
+
+export interface FraudRule {
+  id: string;
+  name: string;
+  description: string;
+  threshold: number;
+  unit: string;
+  enabled: boolean;
 }

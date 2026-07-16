@@ -19,6 +19,7 @@ export async function loadBeneficiary(request: Request, id: string) {
   return {
     beneficiary,
     canReveal: hasPermission(user.permissions, permissions.beneficiaryReadSensitive),
+    canReadHealth: hasPermission(user.permissions, permissions.beneficiaryReadHealth),
   };
 }
 

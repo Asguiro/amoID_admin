@@ -39,8 +39,8 @@ export function DashboardSkeleton() {
   return (
     <div className="space-y-6" role="status" aria-label="Chargement du tableau de bord">
       <span className="sr-only">Chargement du tableau de bord…</span>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }, (_, index) => (
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 8 }, (_, index) => (
           <div key={index} className="skeleton h-32 rounded-3xl" />
         ))}
       </div>

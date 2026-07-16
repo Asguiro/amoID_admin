@@ -4,6 +4,8 @@ import { PageHeader } from "~/components/layouts/PageHeader";
 import { AppCard } from "~/components/ui/AppCard";
 import { FormField } from "~/components/ui/FormField";
 import type { Agent, Establishment } from "~/types/admin";
+import { ADMIN_ROLE_LABELS } from "~/types/admin";
+import { adminRoles } from "~/config/permissions";
 import { CsrfField } from "~/components/security/CsrfProvider";
 
 export function AgentFormPage({
@@ -46,12 +48,18 @@ export function AgentFormPage({
             />
           </FormField>
           <FormField label="Rôle">
-            <input
+            <select
               required
               name="role"
-              defaultValue={agent?.role}
-              className="amo-input"
-            />
+              defaultValue={agent?.role ?? adminRoles.ENROLLMENT_AGENT}
+              className="amo-select"
+            >
+              {Object.values(adminRoles).map((role) => (
+                <option key={role} value={role}>
+                  {ADMIN_ROLE_LABELS[role] ?? role}
+                </option>
+              ))}
+            </select>
           </FormField>
           <FormField label="Statut">
             <select

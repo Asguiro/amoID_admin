@@ -20,9 +20,12 @@ const DEMO_USERS: Record<string, AdminSessionUser & { password: string }> = {
     permissions: [
       permissions.dashboardReadRegion,
       permissions.beneficiaryReadBasic,
+      permissions.beneficiaryReadSensitive,
+      permissions.beneficiaryReadHealth,
       permissions.enrollmentRead,
       permissions.enrollmentValidate,
       permissions.enrollmentReturnForCorrection,
+      permissions.enrollmentReject,
       permissions.agentRead,
       permissions.agentUpdate,
       permissions.agentSuspend,
@@ -30,6 +33,7 @@ const DEMO_USERS: Record<string, AdminSessionUser & { password: string }> = {
       permissions.establishmentRead,
       permissions.establishmentUpdate,
       permissions.deviceRead,
+      permissions.deviceTrust,
       permissions.deviceRevoke,
       permissions.verificationRead,
       permissions.temporaryQrRead,
@@ -39,6 +43,7 @@ const DEMO_USERS: Record<string, AdminSessionUser & { password: string }> = {
       permissions.alertInvestigate,
       permissions.reportRead,
       permissions.auditRead,
+      permissions.settingsRead,
     ],
   },
   "auditeur@amo.ml": {

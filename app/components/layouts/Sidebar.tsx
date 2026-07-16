@@ -1,4 +1,4 @@
-import { Form, NavLink } from "react-router";
+import { Form, NavLink, useLocation } from "react-router";
 import clsx from "clsx";
 import { LogOut } from "lucide-react";
 
@@ -22,6 +22,7 @@ function initials(name: string) {
 }
 
 export function Sidebar({ user }: SidebarProps) {
+  const { pathname } = useLocation();
   const visibleItems = navigationItems.filter((item) =>
     hasAnyPermission(user.permissions, item.permissions),
   );
@@ -42,14 +43,20 @@ export function Sidebar({ user }: SidebarProps) {
         <ul className="space-y-1">
           {visibleItems.map((item) => {
             const Icon = item.icon;
+            const isRelatedRoute = item.activePrefixes?.some(
+              (prefix) =>
+                pathname === prefix || pathname.startsWith(`${prefix}/`),
+            );
+
             return (
               <li key={item.to}>
                 <NavLink
                   to={item.to}
+                  aria-current={isRelatedRoute ? "page" : undefined}
                   className={({ isActive }) =>
                     clsx(
                       "amo-nav-item flex items-center gap-3 px-3 py-2.5 text-sm",
-                      isActive && "amo-nav-item-active",
+                      (isActive || isRelatedRoute) && "amo-nav-item-active",
                     )
                   }
                 >

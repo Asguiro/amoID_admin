@@ -24,7 +24,7 @@ interface DataTableProps<TData> {
   emptyDescription?: string;
   pagination?: TablePagination;
   onPageChange?: (page: number) => void;
-  buildPageHref?: (page: number) => string;
+  buildPageHref?: (page: number, pageSize?: number) => string;
   className?: string;
 }
 
@@ -52,6 +52,19 @@ export function DataTable<TData>({
   const hasNextPage = Boolean(
     pagination && pagination.page < pagination.totalPages,
   );
+  const visiblePages = pagination
+    ? Array.from(
+        { length: Math.min(5, pagination.totalPages) },
+        (_, index) =>
+          Math.max(
+            1,
+            Math.min(
+              pagination.totalPages - 4,
+              pagination.page - 2,
+            ),
+          ) + index,
+      ).filter((page) => page <= pagination.totalPages)
+    : [];
 
   const renderPaginationControl = (
     direction: "previous" | "next",
@@ -151,9 +164,49 @@ export function DataTable<TData>({
             <span className="mx-2" aria-hidden="true">·</span>
             Page {pagination.page} sur {pagination.totalPages}
           </p>
-          <div className="flex gap-2">
-            {renderPaginationControl("previous", previousPage, hasPreviousPage)}
-            {renderPaginationControl("next", nextPage, hasNextPage)}
+          <div className="flex flex-wrap items-center gap-3">
+            {buildPageHref ? (
+              <div className="dropdown dropdown-top dropdown-end">
+                <button type="button" tabIndex={0} className="btn btn-ghost btn-sm rounded-xl">
+                  {pagination.pageSize} / page
+                </button>
+                <ul
+                  tabIndex={-1}
+                  className="menu dropdown-content z-20 mb-2 w-36 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg"
+                >
+                  {[10, 20, 50].map((pageSize) => (
+                    <li key={pageSize}>
+                      <Link
+                        to={buildPageHref(1, pageSize)}
+                        aria-current={pagination.pageSize === pageSize ? "true" : undefined}
+                      >
+                        {pageSize} par page
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            <div className="join" aria-label="Choisir une page">
+              {renderPaginationControl("previous", previousPage, hasPreviousPage)}
+              {buildPageHref
+                ? visiblePages.map((page) => (
+                    <Link
+                      key={page}
+                      to={buildPageHref(page)}
+                      className={clsx(
+                        "btn btn-sm join-item",
+                        page === pagination.page ? "btn-primary" : "btn-outline",
+                      )}
+                      aria-current={page === pagination.page ? "page" : undefined}
+                      aria-label={`Page ${page}`}
+                    >
+                      {page}
+                    </Link>
+                  ))
+                : null}
+              {renderPaginationControl("next", nextPage, hasNextPage)}
+            </div>
           </div>
         </nav>
       ) : null}

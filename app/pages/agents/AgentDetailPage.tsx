@@ -1,12 +1,14 @@
 import { Form, Link, useNavigation } from "react-router";
 
 import { PageHeader } from "~/components/layouts/PageHeader";
-import { AppCard } from "~/components/ui/AppCard";
 import { AuditTimeline } from "~/components/ui/AuditTimeline";
 import { DetailField, DetailGrid } from "~/components/ui/DetailField";
+import { DetailPageLayout } from "~/components/ui/DetailPageLayout";
+import { DetailSectionCard } from "~/components/ui/DetailSectionCard";
 import { FormField } from "~/components/ui/FormField";
 import { AgentStatusBadge } from "~/components/ui/StatusBadge";
 import type { Agent } from "~/types/admin";
+import { ADMIN_ROLE_LABELS } from "~/types/admin";
 import { CsrfField } from "~/components/security/CsrfProvider";
 
 export function AgentDetailPage({ agent }: { agent: Agent }) {
@@ -31,7 +33,7 @@ export function AgentDetailPage({ agent }: { agent: Agent }) {
     <>
       <PageHeader
         title={agent.displayName}
-        description={agent.role}
+        description={`${ADMIN_ROLE_LABELS[agent.role] ?? agent.role} · ${agent.email} · ${agent.establishmentName}`}
         backTo="/agents"
         backLabel="Retour aux agents"
         badge={<AgentStatusBadge status={agent.status} />}
@@ -53,11 +55,14 @@ export function AgentDetailPage({ agent }: { agent: Agent }) {
         }
       />
 
-      <div className="grid gap-5 lg:grid-cols-3">
-        <AppCard className="lg:col-span-2" padding="lg">
-          <h2 className="amo-display mb-5 text-lg font-semibold text-secondary">
-            Identité
-          </h2>
+      <DetailPageLayout
+        aside={
+          <DetailSectionCard title="Activité récente">
+            <AuditTimeline items={activity} />
+          </DetailSectionCard>
+        }
+      >
+        <DetailSectionCard title="Identité et rattachement">
           <DetailGrid>
             <DetailField label="Courriel">{agent.email}</DetailField>
             <DetailField label="Établissement">
@@ -98,15 +103,8 @@ export function AgentDetailPage({ agent }: { agent: Agent }) {
               </button>
             </Form>
           ) : null}
-        </AppCard>
-
-        <AppCard padding="lg">
-          <h2 className="amo-display mb-5 text-lg font-semibold text-secondary">
-            Activité récente
-          </h2>
-          <AuditTimeline items={activity} />
-        </AppCard>
-      </div>
+        </DetailSectionCard>
+      </DetailPageLayout>
     </>
   );
 }

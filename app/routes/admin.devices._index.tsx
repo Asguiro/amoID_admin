@@ -9,5 +9,11 @@ export function meta() {
   return [{ title: "Appareils — AMO ID Admin" }];
 }
 export default function RouteComponent({ loaderData }: Route.ComponentProps) {
-  return <DevicesListPage data={loaderData.devices} query={loaderData.query} />;
+  return (
+    <DevicesListPage
+      data={loaderData.devices}
+      query={loaderData.query}
+      pendingSync={loaderData.pendingSync}
+    />
+  );
 }

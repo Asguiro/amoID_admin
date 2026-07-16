@@ -5,12 +5,15 @@ import { PageHeader } from "~/components/layouts/PageHeader";
 import { AppCard } from "~/components/ui/AppCard";
 import { DataTable } from "~/components/ui/DataTable";
 import { DetailField, DetailGrid } from "~/components/ui/DetailField";
+import { DetailSectionCard } from "~/components/ui/DetailSectionCard";
 import { FilterBar } from "~/components/ui/FilterBar";
 import { FormField } from "~/components/ui/FormField";
 import { SearchField } from "~/components/ui/SearchField";
-import { EnrollmentStatusBadge } from "~/components/ui/StatusBadge";
-import type { Enrollment, PaginatedResponse } from "~/types/admin";
+import { PreparedMediaSlot } from "~/components/ui/MediaGallery";
+import { EnrollmentStatusBadge, StatusBadge } from "~/components/ui/StatusBadge";
+import type { Enrollment, ListQuery, PaginatedResponse } from "~/types/admin";
 import { CsrfField } from "~/components/security/CsrfProvider";
+import { buildListHref, countActiveListFilters } from "~/utils/search-params";
 
 const columns: ColumnDef<Enrollment>[] = [
   {
@@ -32,6 +35,26 @@ const columns: ColumnDef<Enrollment>[] = [
       <EnrollmentStatusBadge status={row.original.status} />
     ),
   },
+  {
+    accessorKey: "isProvisional",
+    header: "Type",
+    cell: ({ row }) =>
+      row.original.isProvisional ? (
+        <StatusBadge tone="warning">Provisoire</StatusBadge>
+      ) : (
+        <StatusBadge tone="neutral">Complet</StatusBadge>
+      ),
+  },
+  {
+    accessorKey: "syncStatus",
+    header: "Sync",
+    cell: ({ row }) =>
+      row.original.syncStatus === "PENDING_SYNC" ? (
+        <StatusBadge tone="warning">En attente</StatusBadge>
+      ) : (
+        <StatusBadge tone="success">Synchronisé</StatusBadge>
+      ),
+  },
   { accessorKey: "establishmentName", header: "Établissement" },
   { accessorKey: "submittedBy", header: "Soumis par" },
   {
@@ -44,13 +67,14 @@ const columns: ColumnDef<Enrollment>[] = [
 
 export function EnrollmentsPage({
   result,
-  q,
+  query,
   pendingOnly = false,
 }: {
   result: PaginatedResponse<Enrollment>;
-  q?: string;
+  query: ListQuery;
   pendingOnly?: boolean;
 }) {
+  const basePath = pendingOnly ? "/enrollments/pending" : "/enrollments";
   return (
     <>
       <PageHeader
@@ -65,22 +89,23 @@ export function EnrollmentsPage({
               Voir la file d’attente
             </Link>
           ) : (
-            <Link
-              to="/enrollments"
-              className="btn btn-ghost h-10 rounded-xl"
-            >
+            <Link to="/enrollments" className="btn btn-ghost h-10 rounded-xl">
               Tous les dossiers
             </Link>
           )
         }
       />
       <Form method="get">
-        <FilterBar>
+        <FilterBar
+          activeFilterCount={countActiveListFilters(query)}
+          resetHref={basePath}
+          label="Rechercher dans les enrôlements"
+        >
           <SearchField
-            defaultValue={q}
+            defaultValue={query.q}
             placeholder="Bénéficiaire, identifiant ou établissement"
           />
-          <button className="amo-filter-btn" type="submit">
+          <button className="btn btn-primary h-11 rounded-2xl px-5" type="submit">
             Rechercher
           </button>
         </FilterBar>
@@ -90,33 +115,42 @@ export function EnrollmentsPage({
         columns={columns}
         data={result.items}
         pagination={result.pagination}
-        buildPageHref={(page) =>
-          `?q=${encodeURIComponent(q ?? "")}&page=${page}`
+        buildPageHref={(page, pageSize = query.pageSize) =>
+          buildListHref(basePath, query, { page, pageSize })
         }
       />
     </>
   );
 }
 
+const qualityLabels = {
+  GOOD: "Bonne",
+  ACCEPTABLE: "Acceptable",
+  POOR: "Faible",
+} as const;
+
 export function EnrollmentDetailPage({
   enrollment,
   canValidate,
   canReturn,
+  canReject,
   actionData,
 }: {
   enrollment: Enrollment;
   canValidate: boolean;
   canReturn: boolean;
+  canReject: boolean;
   actionData?: { error?: string; success?: string };
 }) {
   const navigation = useNavigation();
   const busy = navigation.state === "submitting";
+  const canDecide = canValidate || canReturn || canReject;
 
   return (
     <>
       <PageHeader
         title={`Enrôlement ${enrollment.id}`}
-        description={enrollment.beneficiaryName}
+        description={`${enrollment.beneficiaryName} · ${enrollment.establishmentName} · soumis par ${enrollment.submittedBy}`}
         backTo="/enrollments"
         backLabel="Retour aux enrôlements"
         badge={<EnrollmentStatusBadge status={enrollment.status} />}
@@ -134,42 +168,159 @@ export function EnrollmentDetailPage({
       ) : null}
 
       <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-        <AppCard padding="lg">
-          <h2 className="amo-display mb-5 text-lg font-semibold text-secondary">
-            Dossier
-          </h2>
-          <DetailGrid>
-            <DetailField label="Établissement">
-              {enrollment.establishmentName}
-            </DetailField>
-            <DetailField label="Soumis par">
-              {enrollment.submittedBy}
-            </DetailField>
-            <DetailField label="Date" className="sm:col-span-2">
-              {new Date(enrollment.submittedAt).toLocaleString("fr-FR")}
-            </DetailField>
-          </DetailGrid>
+        <div className="space-y-5">
+          <AppCard padding="lg">
+            <h2 className="amo-display mb-5 text-lg font-semibold text-secondary">
+              Dossier
+            </h2>
+            <DetailGrid>
+              <DetailField label="Établissement">
+                {enrollment.establishmentName}
+              </DetailField>
+              <DetailField label="Soumis par">
+                {enrollment.submittedBy}
+              </DetailField>
+              <DetailField label="Type">
+                {enrollment.isProvisional ? "Provisoire" : "Complet"}
+              </DetailField>
+              <DetailField label="Synchronisation">
+                {enrollment.syncStatus === "PENDING_SYNC"
+                  ? "En attente de sync"
+                  : "Synchronisé"}
+              </DetailField>
+              <DetailField label="Consentement santé">
+                {enrollment.healthConsentAccepted ? "Accepté" : "Non / N/A"}
+              </DetailField>
+              <DetailField label="Qualité capture">
+                {enrollment.faceQualityLabel
+                  ? qualityLabels[enrollment.faceQualityLabel]
+                  : "—"}
+              </DetailField>
+              <DetailField label="Session face" className="sm:col-span-2">
+                {enrollment.faceCaptureSessionId ?? "—"}
+              </DetailField>
+              <DetailField label="Date" className="sm:col-span-2">
+                {new Date(enrollment.submittedAt).toLocaleString("fr-FR")}
+              </DetailField>
+            </DetailGrid>
+          </AppCard>
 
-          <h3 className="mt-8 mb-3 text-sm font-semibold text-secondary">
-            Indices de doublon
-          </h3>
-          {enrollment.duplicateHints.length ? (
-            <ul className="space-y-2">
-              {enrollment.duplicateHints.map((hint) => (
-                <li
-                  key={hint}
-                  className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning-content"
-                >
-                  {hint}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-base-content/60">
-              Aucun indice détecté.
-            </p>
-          )}
-        </AppCard>
+          <DetailSectionCard
+            title="Captures et documents"
+            description="Les contenus biométriques restent protégés et ne sont chargés qu’avec une autorisation adaptée."
+            badge={<span className="badge badge-outline">Données sensibles</span>}
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <PreparedMediaSlot
+                label="Capture faciale"
+                kind="FACE_CAPTURE"
+                referenceId={enrollment.faceCaptureSessionId}
+                availability={enrollment.faceCaptureSessionId ? "RESTRICTED" : "SOURCE_NOT_CONNECTED"}
+              />
+              <PreparedMediaSlot label="Pièces du dossier" kind="ID_DOCUMENT" />
+            </div>
+          </DetailSectionCard>
+
+          {enrollment.requiredFields ? (
+            <AppCard padding="lg">
+              <h2 className="amo-display mb-5 text-lg font-semibold text-secondary">
+                Champs saisis
+              </h2>
+              <DetailGrid>
+                <DetailField label="Prénom">
+                  {enrollment.requiredFields.firstName || "—"}
+                </DetailField>
+                <DetailField label="Nom">
+                  {enrollment.requiredFields.lastName || "—"}
+                </DetailField>
+                <DetailField label="Naissance">
+                  {enrollment.requiredFields.birthDate || "—"}
+                </DetailField>
+                <DetailField label="Sexe">
+                  {enrollment.requiredFields.sex === "FEMALE"
+                    ? "Féminin"
+                    : enrollment.requiredFields.sex === "MALE"
+                      ? "Masculin"
+                      : "—"}
+                </DetailField>
+                <DetailField label="Téléphone">
+                  {enrollment.requiredFields.phoneCountryCode}{" "}
+                  {enrollment.requiredFields.phoneNumber || "—"}
+                </DetailField>
+                <DetailField label="Ville">
+                  {enrollment.requiredFields.city || "—"}
+                </DetailField>
+                <DetailField label="Adresse" className="sm:col-span-2">
+                  {enrollment.requiredFields.address || "—"}
+                </DetailField>
+                <DetailField label="NINA">
+                  {enrollment.requiredFields.ninaMasked || "—"}
+                </DetailField>
+                <DetailField label="Carte biométrique">
+                  {enrollment.requiredFields.biometricCardNumberMasked || "—"}
+                </DetailField>
+              </DetailGrid>
+            </AppCard>
+          ) : null}
+
+          {enrollment.healthSummary ? (
+            <AppCard padding="lg">
+              <h2 className="amo-display mb-5 text-lg font-semibold text-secondary">
+                Santé (présence)
+              </h2>
+              <DetailGrid columns={3}>
+                <DetailField label="Contact urgence">
+                  {enrollment.healthSummary.hasEmergencyContact ? "Oui" : "Non"}
+                </DetailField>
+                <DetailField label="Groupe sanguin">
+                  {enrollment.healthSummary.hasBloodGroup ? "Oui" : "Non"}
+                </DetailField>
+                <DetailField label="Allergies">
+                  {enrollment.healthSummary.hasAllergies ? "Oui" : "Non"}
+                </DetailField>
+              </DetailGrid>
+            </AppCard>
+          ) : null}
+
+          <AppCard padding="lg">
+            <h3 className="mb-3 text-sm font-semibold text-secondary">
+              Indices de doublon
+            </h3>
+            {enrollment.duplicateCandidates?.length ? (
+              <ul className="space-y-2">
+                {enrollment.duplicateCandidates.map((candidate) => (
+                  <li
+                    key={candidate.beneficiaryId}
+                    className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm"
+                  >
+                    <Link
+                      className="font-medium text-primary hover:underline"
+                      to={`/beneficiaries/${candidate.beneficiaryId}`}
+                    >
+                      {candidate.displayName}
+                    </Link>
+                    <p className="mt-1 text-warning-content">{candidate.hint}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : enrollment.duplicateHints.length ? (
+              <ul className="space-y-2">
+                {enrollment.duplicateHints.map((hint) => (
+                  <li
+                    key={hint}
+                    className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning-content"
+                  >
+                    {hint}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-base-content/60">
+                Aucun indice détecté.
+              </p>
+            )}
+          </AppCard>
+        </div>
 
         <AppCard padding="lg">
           <h2 className="amo-display mb-5 text-lg font-semibold text-secondary">
@@ -188,37 +339,47 @@ export function EnrollmentDetailPage({
               </button>
             </Form>
           ) : null}
-          {canReturn ? (
+          {canReturn || canReject ? (
             <Form method="post" className="space-y-4">
               <CsrfField />
-              <FormField label="Commentaire obligatoire">
-                <textarea
-                  name="comment"
-                  required
-                  className="amo-textarea"
-                />
+              <FormField label="Commentaire / motif obligatoire">
+                <textarea name="comment" required className="amo-textarea" />
               </FormField>
               <div className="flex flex-col gap-2">
-                <button
-                  disabled={busy}
-                  name="intent"
-                  value="return"
-                  className="btn btn-warning h-11 w-full rounded-xl"
-                >
-                  Retourner pour correction
-                </button>
-                <button
-                  disabled={busy}
-                  name="intent"
-                  value="manual-review"
-                  className="btn btn-outline h-11 w-full rounded-xl"
-                >
-                  Analyse manuelle
-                </button>
+                {canReturn ? (
+                  <>
+                    <button
+                      disabled={busy}
+                      name="intent"
+                      value="return"
+                      className="btn btn-warning h-11 w-full rounded-xl"
+                    >
+                      Retourner pour correction
+                    </button>
+                    <button
+                      disabled={busy}
+                      name="intent"
+                      value="manual-review"
+                      className="btn btn-outline h-11 w-full rounded-xl"
+                    >
+                      Analyse manuelle
+                    </button>
+                  </>
+                ) : null}
+                {canReject ? (
+                  <button
+                    disabled={busy}
+                    name="intent"
+                    value="reject"
+                    className="btn btn-error h-11 w-full rounded-xl"
+                  >
+                    Rejeter l’enrôlement
+                  </button>
+                ) : null}
               </div>
             </Form>
           ) : null}
-          {!canValidate && !canReturn ? (
+          {!canDecide ? (
             <p className="text-sm text-base-content/60">
               Vous ne disposez pas des permissions de décision.
             </p>

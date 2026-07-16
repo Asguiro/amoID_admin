@@ -11,7 +11,7 @@ import { daysAgo, filterByQuery, filterByStatus, toPaginated } from "../_shared/
 const ALLOWED_TRANSITIONS: Record<AlertStatus, readonly AlertStatus[]> = {
   NEW: ["ASSIGNED"],
   ASSIGNED: ["UNDER_REVIEW"],
-  UNDER_REVIEW: ["CONFIRMED", "DISMISSED", "ESCALATED"],
+  UNDER_REVIEW: ["NEEDS_INFORMATION", "CONFIRMED", "DISMISSED", "ESCALATED"],
   NEEDS_INFORMATION: ["UNDER_REVIEW"],
   CONFIRMED: ["CLOSED"],
   DISMISSED: ["CLOSED"],

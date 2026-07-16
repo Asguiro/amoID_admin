@@ -48,6 +48,7 @@ export default [
     route("audit", "routes/admin.audit.tsx"),
     route("audit/:id", "routes/admin.audit.$id.tsx"),
     route("settings/access", "routes/admin.settings.access.tsx"),
+    route("settings/operations", "routes/admin.settings.operations.tsx"),
     route("settings/*", "routes/admin.settings.other.tsx"),
   ]),
   route("*", "routes/$.tsx"),

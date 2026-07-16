@@ -4,9 +4,11 @@ import { Form, Link } from "react-router";
 import { PageHeader } from "~/components/layouts/PageHeader";
 import { DataTable } from "~/components/ui/DataTable";
 import { FilterBar } from "~/components/ui/FilterBar";
+import { FilterSelect } from "~/components/ui/FilterSelect";
 import { SearchField } from "~/components/ui/SearchField";
 import { StatusBadge } from "~/components/ui/StatusBadge";
 import type { Establishment, ListQuery, PaginatedResponse } from "~/types/admin";
+import { buildListHref, countActiveListFilters } from "~/utils/search-params";
 
 const typeLabels = { HOSPITAL: "Hôpital", CLINIC: "Clinique", PHARMACY: "Pharmacie", ANTENNA: "Antenne" };
 
@@ -21,35 +23,33 @@ const columns: ColumnDef<Establishment>[] = [
 ];
 
 export function EstablishmentsListPage({ data, query }: { data: PaginatedResponse<Establishment>; query: ListQuery }) {
-  const buildPageHref = (page: number) => {
-    const params = new URLSearchParams();
-    if (query.q) params.set("q", query.q);
-    if (query.status) params.set("status", query.status);
-    params.set("page", String(page));
-    params.set("pageSize", String(query.pageSize));
-    return `/establishments?${params}`;
-  };
+  const buildPageHref = (page: number, pageSize = query.pageSize) =>
+    buildListHref("/establishments", query, { page, pageSize });
 
   return (
     <>
       <PageHeader title="Établissements" description="Gérez les structures de santé raccordées à AMO ID." actions={<Link to="/establishments/new" className="btn btn-primary h-10 rounded-xl">Nouvel établissement</Link>} />
       <Form method="get">
-        <FilterBar>
+        <FilterBar
+          activeFilterCount={countActiveListFilters(query)}
+          resetHref="/establishments"
+          label="Rechercher et filtrer les établissements"
+        >
           <SearchField
             defaultValue={query.q}
             placeholder="Nom, région ou ville…"
           />
-          <select
+          <FilterSelect
             name="status"
-            defaultValue={query.status ?? ""}
-            className="amo-select w-full sm:w-48"
-            aria-label="Filtrer par statut"
-          >
-            <option value="">Tous les statuts</option>
-            <option value="ACTIVE">Actifs</option>
-            <option value="INACTIVE">Inactifs</option>
-          </select>
-          <button className="amo-filter-btn" type="submit">
+            value={query.status}
+            label="Filtrer par statut"
+            allLabel="Tous les statuts"
+            options={[
+              { value: "ACTIVE", label: "Actifs" },
+              { value: "INACTIVE", label: "Inactifs" },
+            ]}
+          />
+          <button className="btn btn-primary h-11 rounded-2xl px-5" type="submit">
             Filtrer
           </button>
         </FilterBar>
