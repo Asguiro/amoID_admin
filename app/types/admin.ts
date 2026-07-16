@@ -286,6 +286,126 @@ export interface BeneficiaryDetail extends Beneficiary {
   }>;
 }
 
+export type CareCategory =
+  | "MEDICINES"
+  | "CONSULTATION"
+  | "HOSPITALIZATION"
+  | "SURGERY"
+  | "LABORATORY"
+  | "IMAGING"
+  | "MATERNITY"
+  | "DENTAL";
+
+export type BenefitClaimStatus =
+  | "SUBMITTED"
+  | "UNDER_REVIEW"
+  | "ACCEPTED"
+  | "PAID"
+  | "PARTIALLY_REJECTED"
+  | "REJECTED";
+
+export interface BenefitClaimLine {
+  code: string;
+  label: string;
+  quantity: number;
+  unitPrice: number;
+  billedAmount: number;
+  eligibleAmount: number;
+}
+
+export interface BenefitClaim {
+  id: string;
+  beneficiaryId: string;
+  beneficiaryName: string;
+  claimNumber: string;
+  invoiceReference: string;
+  serviceDate: string;
+  submittedAt: string;
+  paidAt?: string;
+  category: CareCategory;
+  careSetting: "AMBULATORY" | "HOSPITAL";
+  description: string;
+  establishmentName: string;
+  establishmentType: EstablishmentType;
+  region: string;
+  prescriberName?: string;
+  coverageRate: 70 | 80;
+  billedAmount: number;
+  eligibleAmount: number;
+  coveredAmount: number;
+  copayAmount: number;
+  rejectedAmount: number;
+  status: BenefitClaimStatus;
+  verificationChannel: "BIOMETRIC" | "QR" | "MANUAL";
+  anomalySignals: string[];
+  lines: BenefitClaimLine[];
+}
+
+export interface CostBreakdown {
+  key: string;
+  label: string;
+  claimsCount: number;
+  billedAmount: number;
+  coveredAmount: number;
+  sharePercent: number;
+}
+
+export interface BeneficiaryCostProfile {
+  beneficiaryId: string;
+  beneficiaryName: string;
+  periodLabel: string;
+  generatedAt: string;
+  dataSource: "DEMO" | "CONNECTED" | "PARTIAL";
+  totals: {
+    claimsCount: number;
+    billedAmount: number;
+    eligibleAmount: number;
+    coveredAmount: number;
+    copayAmount: number;
+    rejectedAmount: number;
+    establishmentsCount: number;
+    regionsCount: number;
+    anomalySignalsCount: number;
+  };
+  byCategory: CostBreakdown[];
+  byEstablishment: CostBreakdown[];
+  monthlyTrend: Array<{
+    month: string;
+    claimsCount: number;
+    coveredAmount: number;
+  }>;
+  claims: BenefitClaim[];
+}
+
+export interface BeneficiaryCostRankingItem {
+  beneficiaryId: string;
+  beneficiaryName: string;
+  amoNumberMasked: string;
+  region: string;
+  claimsCount: number;
+  coveredAmount: number;
+  billedAmount: number;
+  topCategory: CareCategory;
+  establishmentsCount: number;
+  anomalySignalsCount: number;
+}
+
+export interface CostReport {
+  periodLabel: string;
+  generatedAt: string;
+  dataSource: "DEMO" | "CONNECTED" | "PARTIAL";
+  totals: {
+    beneficiariesCount: number;
+    claimsCount: number;
+    billedAmount: number;
+    coveredAmount: number;
+    copayAmount: number;
+    rejectedAmount: number;
+  };
+  byCategory: CostBreakdown[];
+  ranking: BeneficiaryCostRankingItem[];
+}
+
 export interface EnrollmentRequiredFieldsSnapshot {
   firstName: string;
   lastName: string;

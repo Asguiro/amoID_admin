@@ -20,6 +20,7 @@ export default function RouteComponent({
       beneficiary={loaderData.beneficiary}
       canReveal={loaderData.canReveal}
       canReadHealth={loaderData.canReadHealth}
+      canReadCosts={loaderData.canReadCosts}
       sensitive={actionData?.sensitive}
     />
   );

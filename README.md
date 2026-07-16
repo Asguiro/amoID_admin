@@ -65,6 +65,28 @@ Voir `.env.example` :
 
 Ne pas exposer de secrets via `VITE_*`.
 
+## Déploiement Vercel
+
+Le projet est compatible avec la détection automatique React Router de Vercel.
+Aucun `vercel.json` ni répertoire de sortie personnalisé n'est nécessaire.
+
+1. Importer le dépôt Git dans Vercel.
+2. Conserver le framework, la commande d'installation, la commande de build et
+   le répertoire de sortie détectés automatiquement.
+3. Déclarer les variables serveur pour les environnements concernés :
+   - `API_URL` — URL HTTPS de l'API déployée ;
+   - `SESSION_SECRET` — secret aléatoire d'au moins 16 caractères ;
+   - `APP_ENV=production`.
+4. Déployer. La version Node est verrouillée sur `22.x` dans `package.json`.
+
+Le preset `@vercel/react-router` n'est pas activé tant que sa version publiée
+requiert React Router 7 ; l'application utilise React Router 8. Le déploiement
+zero-config reste utilisé afin de ne pas forcer une dépendance incompatible.
+
+Avant une mise en production réelle, remplacer les services mock par les
+connecteurs API CANAM/OGD et définir un `SESSION_SECRET` propre à chaque
+environnement.
+
 ## Documentation
 
 Le cadrage produit et technique est dans `docs/`. Les règles Cursor sont dans `.cursor/`.

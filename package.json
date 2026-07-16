@@ -2,6 +2,9 @@
   "name": "amoid-admin",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "build": "react-router build",
     "dev": "react-router dev",

@@ -42,6 +42,13 @@ const reports: ReportSummary[] = [
     description: "Signaux détectés, décisions et délais de traitement.",
     href: "/reports/fraud",
   },
+  {
+    id: "costs",
+    title: "Prestations et coûts",
+    description:
+      "Classement des bénéficiaires, dépenses par catégorie, établissement et reste à charge.",
+    href: "/reports/costs",
+  },
 ];
 
 const exportJobs = new Map<string, ExportJob>();

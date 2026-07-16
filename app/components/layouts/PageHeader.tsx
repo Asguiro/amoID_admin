@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 interface PageHeaderProps {
   title: string;
   description?: string;
+  leading?: React.ReactNode;
   /** Lien de retour — toujours affiché à gauche */
   backTo?: string;
   backLabel?: string;
@@ -14,6 +15,7 @@ interface PageHeaderProps {
 export function PageHeader({
   title,
   description,
+  leading,
   backTo,
   backLabel = "Retour",
   actions,
@@ -32,18 +34,21 @@ export function PageHeader({
       ) : null}
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="amo-display text-2xl leading-tight font-semibold tracking-tight text-secondary sm:text-[1.75rem]">
-              {title}
-            </h1>
-            {badge}
+        <div className="flex min-w-0 flex-1 items-start gap-4">
+          {leading ? <div className="shrink-0">{leading}</div> : null}
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="amo-display text-2xl leading-tight font-semibold tracking-tight text-secondary sm:text-[1.75rem]">
+                {title}
+              </h1>
+              {badge}
+            </div>
+            {description ? (
+              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-base-content/65">
+                {description}
+              </p>
+            ) : null}
           </div>
-          {description ? (
-            <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-base-content/65">
-              {description}
-            </p>
-          ) : null}
         </div>
         {actions ? (
           <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">

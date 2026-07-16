@@ -23,15 +23,20 @@ test.describe("RBAC par rôle", () => {
     ).toBeVisible();
   });
 
-  test("superviseur régional accède au dashboard région et pas aux settings", async ({
+  test("superviseur régional consulte les paramètres sans les modifier", async ({
     page,
   }) => {
     await login(page, "superviseur@amo.ml", "Super123!");
     await expect(
       page.getByRole("heading", { name: /Vue d'ensemble/i }),
     ).toBeVisible();
-    await page.goto("/settings/access");
-    await expect(page).toHaveURL(/\/unauthorized/);
+    await page.goto("/settings/operations");
+    await expect(
+      page.getByRole("heading", { name: /Paramètres opérationnels/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /Enregistrer/i }),
+    ).toHaveCount(0);
   });
 
   test("auditeur lit audit et alertes, sans mutation settings", async ({

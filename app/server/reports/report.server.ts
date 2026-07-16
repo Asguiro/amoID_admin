@@ -1,4 +1,4 @@
-import { permissions } from "~/config/permissions";
+import { hasPermission, permissions } from "~/config/permissions";
 import {
   createExportJob,
   getBiometricsReport,
@@ -13,8 +13,15 @@ import { requirePermission } from "../auth/require-permission.server";
 import { requireCsrfToken } from "../security/csrf.server";
 
 export async function loadReportsHub(request: Request) {
-  await requirePermission(request, permissions.reportRead);
-  return { reports: await listReports() };
+  const user = await requirePermission(request, permissions.reportRead);
+  const reports = await listReports();
+  return {
+    reports: reports.filter(
+      (report) =>
+        report.id !== "costs" ||
+        hasPermission(user.permissions, permissions.beneficiaryReadCosts),
+    ),
+  };
 }
 
 export async function loadOperationsReport(request: Request) {

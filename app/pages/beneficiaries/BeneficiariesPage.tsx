@@ -7,6 +7,7 @@ import { AuditTimeline } from "~/components/ui/AuditTimeline";
 import { DataTable } from "~/components/ui/DataTable";
 import { DetailField, DetailGrid } from "~/components/ui/DetailField";
 import { DetailSectionCard } from "~/components/ui/DetailSectionCard";
+import { EntityAvatar } from "~/components/ui/EntityAvatar";
 import { FilterBar } from "~/components/ui/FilterBar";
 import { FilterSelect } from "~/components/ui/FilterSelect";
 import { SearchField } from "~/components/ui/SearchField";
@@ -164,11 +165,13 @@ export function BeneficiaryDetailPage({
   beneficiary,
   canReveal,
   canReadHealth,
+  canReadCosts,
   sensitive,
 }: {
   beneficiary: BeneficiaryDetail;
   canReveal: boolean;
   canReadHealth: boolean;
+  canReadCosts: boolean;
   sensitive?: {
     nina?: string;
     amoNumber?: string;
@@ -180,6 +183,7 @@ export function BeneficiaryDetailPage({
       <PageHeader
         title={beneficiary.displayName}
         description={`${beneficiary.beneficiaryType === "PRIMARY" ? "Ouvrant droit" : "Ayant droit"} · ${beneficiary.establishmentName} · ${beneficiary.region}`}
+        leading={<EntityAvatar name={beneficiary.displayName} size="lg" />}
         backTo="/beneficiaries"
         backLabel="Retour aux bénéficiaires"
         badge={
@@ -200,6 +204,11 @@ export function BeneficiaryDetailPage({
             <Link className="btn btn-outline h-10 rounded-xl" to="coverage">
               Couverture
             </Link>
+            {canReadCosts ? (
+              <Link className="btn btn-outline h-10 rounded-xl" to="costs">
+                Prestations et coûts
+              </Link>
+            ) : null}
             <Link className="btn btn-outline h-10 rounded-xl" to="temporary-qr">
               QR temporaires
             </Link>

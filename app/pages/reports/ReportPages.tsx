@@ -1,4 +1,11 @@
-import { BarChart3, CheckCircle2, Fingerprint, QrCode, ShieldAlert } from "lucide-react";
+import {
+  Banknote,
+  BarChart3,
+  CheckCircle2,
+  Fingerprint,
+  QrCode,
+  ShieldAlert,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Form, Link, useNavigation } from "react-router";
 
@@ -15,6 +22,7 @@ const reportIcons: Record<string, LucideIcon> = {
   biometrics: Fingerprint,
   "temporary-qr": QrCode,
   fraud: ShieldAlert,
+  costs: Banknote,
 };
 
 export function ReportsHubPage({ reports }: { reports: ReportSummary[] }) {

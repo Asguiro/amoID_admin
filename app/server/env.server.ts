@@ -1,15 +1,36 @@
 import { z } from "zod";
 
-const envSchema = z.object({
-  API_URL: z.string().url().default("http://localhost:4000"),
-  SESSION_SECRET: z
-    .string()
-    .min(16)
-    .default("dev-session-secret-change-me-in-production-32chars"),
-  APP_ENV: z
-    .enum(["development", "test", "production"])
-    .default("development"),
-});
+const developmentApiUrl = "http://localhost:4000";
+const developmentSessionSecret =
+  "dev-session-secret-change-me-in-production-32chars";
+
+const envSchema = z
+  .object({
+    API_URL: z.string().url().default(developmentApiUrl),
+    SESSION_SECRET: z.string().min(16).default(developmentSessionSecret),
+    APP_ENV: z
+      .enum(["development", "test", "production"])
+      .default("development"),
+  })
+  .superRefine((env, context) => {
+    if (env.APP_ENV !== "production") return;
+
+    if (env.API_URL === developmentApiUrl) {
+      context.addIssue({
+        code: "custom",
+        path: ["API_URL"],
+        message: "API_URL doit pointer vers l’API de production.",
+      });
+    }
+
+    if (env.SESSION_SECRET === developmentSessionSecret) {
+      context.addIssue({
+        code: "custom",
+        path: ["SESSION_SECRET"],
+        message: "SESSION_SECRET doit être défini explicitement en production.",
+      });
+    }
+  });
 
 export type ServerEnv = z.infer<typeof envSchema>;
 
