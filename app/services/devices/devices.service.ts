@@ -1,6 +1,11 @@
 import { apiRequest } from "~/server/api/client.server";
 import { ApiClientError } from "~/server/api/errors.server";
-import type { Device, ListQuery, PaginatedResponse } from "~/types/admin";
+import type {
+  Device,
+  DeviceStats,
+  ListQuery,
+  PaginatedResponse,
+} from "~/types/admin";
 
 function buildQuery(query: ListQuery & { agentId?: string }) {
   const params = new URLSearchParams({
@@ -23,6 +28,12 @@ export async function listDevices(
   );
 }
 
+export async function getDeviceStats(
+  accessToken: string,
+): Promise<DeviceStats> {
+  return apiRequest<DeviceStats>("/admin/devices/stats", { accessToken });
+}
+
 export async function getDevice(
   id: string,
   accessToken: string,
@@ -37,10 +48,25 @@ export async function getDevice(
   }
 }
 
-/**
- * Approuve un appareil PENDING côté API via restore (réactive / confirme).
- * Le motif reste obligatoire.
- */
+export async function enrollDevice(
+  input: {
+    deviceId: string;
+    agentId: string;
+    platform: string;
+    label?: string;
+    fingerprint?: string;
+    establishmentId?: string;
+  },
+  accessToken: string,
+): Promise<Device> {
+  return apiRequest<Device>("/admin/devices", {
+    method: "POST",
+    accessToken,
+    body: input,
+  });
+}
+
+/** Approuve un appareil PENDING via /approve (device.trust). */
 export async function trustDevice(
   id: string,
   reason: string,
@@ -48,7 +74,7 @@ export async function trustDevice(
 ): Promise<Device | undefined> {
   if (!reason.trim()) throw new Error("Le motif d’approbation est obligatoire.");
   try {
-    return await apiRequest<Device>(`/admin/devices/${id}/restore`, {
+    return await apiRequest<Device>(`/admin/devices/${id}/approve`, {
       method: "POST",
       accessToken,
       body: { reason },
@@ -81,11 +107,36 @@ export async function revokeDevice(
   }
 }
 
-/** Sync offline non branché Phase 1 — liste vide. */
+export async function restoreDevice(
+  id: string,
+  reason: string,
+  accessToken: string,
+): Promise<Device | undefined> {
+  if (!reason.trim()) throw new Error("Le motif de restauration est obligatoire.");
+  try {
+    return await apiRequest<Device>(`/admin/devices/${id}/restore`, {
+      method: "POST",
+      accessToken,
+      body: { reason },
+    });
+  } catch (error) {
+    if (error instanceof ApiClientError && error.status === 404) {
+      return undefined;
+    }
+    throw error;
+  }
+}
+
 export async function listPendingSyncDevices(
-  _accessToken?: string,
+  accessToken: string,
 ): Promise<Device[]> {
-  return [];
+  try {
+    return await apiRequest<Device[]>("/admin/devices/pending-sync", {
+      accessToken,
+    });
+  } catch {
+    return [];
+  }
 }
 
 export function resetDevicesForTests() {

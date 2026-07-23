@@ -7,6 +7,7 @@ import {
   Fingerprint,
   QrCode,
   ShieldAlert,
+  Smartphone,
   UserRoundCheck,
   Users,
 } from "lucide-react";
@@ -40,6 +41,8 @@ const KPI_META: Record<
   incomplete_dossiers: { icon: Users, tint: "gold" },
   provisional_pending: { icon: UserRoundCheck, tint: "gold" },
   alerts_critical: { icon: ShieldAlert, tint: "rose" },
+  devices_pending: { icon: Smartphone, tint: "gold", featured: true },
+  devices_revoked: { icon: ShieldAlert, tint: "rose" },
 };
 
 function resolveKpiMeta(id: string, index: number) {

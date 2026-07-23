@@ -22,6 +22,7 @@ export default [
     route("agents/:id/edit", "routes/admin.agents.$id.edit.tsx"),
     route("agents/:id/devices", "routes/admin.agents.$id.devices.tsx"),
     route("devices", "routes/admin.devices._index.tsx"),
+    route("devices/new", "routes/admin.devices.new.tsx"),
     route("devices/:id", "routes/admin.devices.$id.tsx"),
     route("beneficiaries", "routes/admin.beneficiaries.tsx"),
     route("beneficiaries/:id", "routes/admin.beneficiaries.$id.tsx"),

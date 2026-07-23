@@ -15,11 +15,17 @@ export default function RouteComponent({
   loaderData,
   actionData,
 }: Route.ComponentProps) {
+  const device =
+    actionData && "device" in actionData && actionData.device
+      ? actionData.device
+      : loaderData.device;
+
   return (
     <DeviceDetailPage
-      device={loaderData.device}
+      device={device}
       canTrust={loaderData.canTrust}
       canRevoke={loaderData.canRevoke}
+      canRestore={loaderData.canRestore}
       actionData={actionData}
     />
   );

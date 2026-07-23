@@ -225,6 +225,7 @@ export interface Agent {
 
 export interface Device {
   id: string;
+  deviceId: string;
   label: string;
   status: DeviceStatus;
   agentId: string;
@@ -233,8 +234,26 @@ export interface Device {
   platform: string;
   lastSeenAt: string | null;
   enrolledAt: string;
+  revokedAt?: string | null;
   pendingSyncCount?: number;
   lastSyncAt?: string;
+  history?: Array<{
+    id: string;
+    action: string;
+    reason?: string | null;
+    result: string;
+    actorId: string;
+    createdAt: string;
+  }>;
+}
+
+export interface DeviceStats {
+  trusted: number;
+  pending: number;
+  revoked: number;
+  pendingSync: number;
+  registrationRequests7d: number;
+  generatedAt: string;
 }
 
 export interface Beneficiary {
@@ -445,6 +464,7 @@ export interface Enrollment {
   healthSummary?: BeneficiaryHealthSummary;
   media?: MediaAsset[];
   beneficiaryId?: string;
+  returnReason?: string;
 }
 
 export interface Verification {
@@ -507,6 +527,7 @@ export interface AlertItem {
   severity: AlertSeverity;
   status: AlertStatus;
   assignee?: string;
+  assigneeId?: string;
   establishmentName?: string;
   createdAt: string;
   updatedAt: string;
