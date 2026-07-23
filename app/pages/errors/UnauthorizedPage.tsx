@@ -1,9 +1,11 @@
 import { Link } from "react-router";
 
+import { errorPageCard, errorPageShell } from "~/components/ui/uiClasses";
+
 export function UnauthorizedPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-base-200 p-6">
-      <div className="amo-card max-w-lg p-8 text-center">
+    <main className={errorPageShell}>
+      <div className={errorPageCard}>
         <p className="text-sm font-medium text-primary">AMO ID Santé</p>
         <h1 className="mt-2 text-2xl font-semibold text-secondary">
           Accès non autorisé

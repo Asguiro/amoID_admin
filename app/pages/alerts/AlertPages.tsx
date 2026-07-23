@@ -12,6 +12,7 @@ import { FilterSelect } from "~/components/ui/FilterSelect";
 import { SearchField } from "~/components/ui/SearchField";
 import { PreparedMediaSlot } from "~/components/ui/MediaGallery";
 import { AlertSeverityBadge, AlertStatusBadge } from "~/components/ui/StatusBadge";
+import { btnFilterSubmit, btnHeaderAction } from "~/components/ui/uiClasses";
 import { CsrfField } from "~/components/security/CsrfProvider";
 import type {
   AlertDetail,
@@ -95,7 +96,7 @@ export function AlertsListPage({
             allLabel="Tous les statuts"
             options={statuses}
           />
-          <button className="btn btn-primary h-11 rounded-2xl px-5" type="submit">
+          <button className={btnFilterSubmit} type="submit">
             Filtrer
           </button>
         </FilterBar>
@@ -194,7 +195,7 @@ export function AlertDetailPage({
                 />
                 <button
                   disabled={pending}
-                  className="btn btn-primary h-10 rounded-xl"
+                  className={btnHeaderAction}
                   type="submit"
                 >
                   Ajouter

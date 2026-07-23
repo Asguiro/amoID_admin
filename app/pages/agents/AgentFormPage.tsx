@@ -3,6 +3,11 @@ import { Form, Link, useNavigation } from "react-router";
 import { PageHeader } from "~/components/layouts/PageHeader";
 import { AppCard } from "~/components/ui/AppCard";
 import { FormField } from "~/components/ui/FormField";
+import {
+  btnFormCancel,
+  btnFormSubmit,
+  formFooterRow,
+} from "~/components/ui/uiClasses";
 import type { Agent, Establishment } from "~/types/admin";
 import { ADMIN_ROLE_LABELS } from "~/types/admin";
 import { adminRoles } from "~/config/permissions";
@@ -111,16 +116,16 @@ export function AgentFormPage({
             </select>
           </FormField>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-base-200 pt-5 sm:col-span-2">
+          <div className={formFooterRow}>
             <Link
-              className="btn btn-ghost h-11 rounded-xl"
+              className={btnFormCancel}
               to={agent ? `/agents/${agent.id}` : "/agents"}
             >
               Annuler
             </Link>
             <button
               disabled={busy}
-              className="btn btn-primary h-11 rounded-xl px-6"
+              className={btnFormSubmit}
               type="submit"
             >
               {busy ? "Enregistrement…" : "Enregistrer"}

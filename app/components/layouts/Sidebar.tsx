@@ -3,6 +3,7 @@ import clsx from "clsx";
 import { LogOut } from "lucide-react";
 
 import { BrandLogo } from "~/components/brand/BrandLogo";
+import { softPanelShadow } from "~/components/ui/uiClasses";
 import { navigationItems } from "~/config/navigation";
 import { hasAnyPermission } from "~/config/permissions";
 import type { AdminSessionUser } from "~/types/admin";
@@ -70,7 +71,7 @@ export function Sidebar({ user }: SidebarProps) {
       </nav>
 
       <div className="p-3">
-        <div className="rounded-2xl border border-base-300/80 bg-base-200/60 p-3 shadow-[0_8px_24px_rgb(11_27_51/0.05)]">
+        <div className={clsx("rounded-2xl border border-base-300/80 bg-base-200/60 p-3", softPanelShadow)}>
           <div className="flex items-center gap-3">
             <div
               className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-content"

@@ -11,6 +11,7 @@ import { parseListSearchParams } from "~/utils/search-params";
 
 import { requirePermission } from "../auth/require-permission.server";
 import { requireCsrfToken } from "../security/csrf.server";
+import { requireAccessToken } from "../session.server";
 
 const alertStatuses: AlertStatus[] = [
   "NEW",
@@ -24,29 +25,32 @@ const alertStatuses: AlertStatus[] = [
 
 export async function loadAlertList(request: Request) {
   await requirePermission(request, permissions.alertRead);
+  const accessToken = await requireAccessToken(request);
   const query = parseListSearchParams(new URL(request.url).searchParams);
-  return { result: await listAlerts(query), query };
+  return { result: await listAlerts(query, accessToken), query };
 }
 
 export async function loadAlertDetail(request: Request, id: string) {
   const user = await requirePermission(request, permissions.alertRead);
-  const alert = await getAlertDetail(id);
+  const accessToken = await requireAccessToken(request);
+  const alert = await getAlertDetail(id, accessToken);
   if (!alert) throw new Response("Alerte introuvable.", { status: 404 });
   return { alert, permissions: user.permissions };
 }
 
 export async function mutateAlert(request: Request, id: string) {
   await requireCsrfToken(request);
+  const accessToken = await requireAccessToken(request);
   const formData = await request.formData();
   const intent = String(formData.get("intent") ?? "");
 
   try {
     if (intent === "assign") {
       await requirePermission(request, permissions.alertAssign);
-      await assignAlert(id, String(formData.get("assignee") ?? ""));
+      await assignAlert(id, String(formData.get("assignee") ?? ""), accessToken);
     } else if (intent === "comment") {
       await requirePermission(request, permissions.alertInvestigate);
-      await addAlertComment(id, String(formData.get("body") ?? ""));
+      await addAlertComment(id, String(formData.get("body") ?? ""), accessToken);
     } else if (intent === "status") {
       const status = String(formData.get("status") ?? "") as AlertStatus;
       if (!alertStatuses.includes(status)) throw new Error("Statut d’alerte invalide.");
@@ -60,6 +64,7 @@ export async function mutateAlert(request: Request, id: string) {
         id,
         status,
         String(formData.get("reason") ?? ""),
+        accessToken,
       );
     } else {
       throw new Error("Action d’alerte inconnue.");

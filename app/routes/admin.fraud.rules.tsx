@@ -5,6 +5,7 @@ import {
   requirePermission,
 } from "~/server/auth/require-permission.server";
 import { requireCsrfToken } from "~/server/security/csrf.server";
+import { requireAccessToken } from "~/server/session.server";
 import {
   listFraudRules,
   updateFraudRule,
@@ -16,8 +17,9 @@ export async function loader({ request }: Route.LoaderArgs) {
     permissions.settingsRead,
     permissions.alertDecide,
   ]);
+  const accessToken = await requireAccessToken(request);
   return {
-    rules: await listFraudRules(),
+    rules: await listFraudRules(accessToken),
     canUpdate: user.permissions.includes(permissions.settingsUpdate),
   };
 }
@@ -25,6 +27,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 export async function action({ request }: Route.ActionArgs) {
   await requireCsrfToken(request);
   await requirePermission(request, permissions.settingsUpdate);
+  const accessToken = await requireAccessToken(request);
   const formData = await request.formData();
   if (formData.get("intent") !== "update-rule") {
     return { error: "Action invalide." };
@@ -35,7 +38,7 @@ export async function action({ request }: Route.ActionArgs) {
   if (!ruleId || !Number.isFinite(threshold) || threshold < 1) {
     return { error: "Seuil invalide." };
   }
-  await updateFraudRule(ruleId, { threshold, enabled });
+  await updateFraudRule(ruleId, { threshold, enabled }, accessToken);
   return { success: "Règle mise à jour." };
 }
 

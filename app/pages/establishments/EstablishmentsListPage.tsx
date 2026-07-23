@@ -7,6 +7,7 @@ import { FilterBar } from "~/components/ui/FilterBar";
 import { FilterSelect } from "~/components/ui/FilterSelect";
 import { SearchField } from "~/components/ui/SearchField";
 import { StatusBadge } from "~/components/ui/StatusBadge";
+import { btnFilterSubmit, btnHeaderAction } from "~/components/ui/uiClasses";
 import type { Establishment, ListQuery, PaginatedResponse } from "~/types/admin";
 import { buildListHref, countActiveListFilters } from "~/utils/search-params";
 
@@ -28,7 +29,7 @@ export function EstablishmentsListPage({ data, query }: { data: PaginatedRespons
 
   return (
     <>
-      <PageHeader title="Établissements" description="Gérez les structures de santé raccordées à AMO ID." actions={<Link to="/establishments/new" className="btn btn-primary h-10 rounded-xl">Nouvel établissement</Link>} />
+      <PageHeader title="Établissements" description="Gérez les structures de santé raccordées à AMO ID." actions={<Link to="/establishments/new" className={btnHeaderAction}>Nouvel établissement</Link>} />
       <Form method="get">
         <FilterBar
           activeFilterCount={countActiveListFilters(query)}
@@ -49,7 +50,7 @@ export function EstablishmentsListPage({ data, query }: { data: PaginatedRespons
               { value: "INACTIVE", label: "Inactifs" },
             ]}
           />
-          <button className="btn btn-primary h-11 rounded-2xl px-5" type="submit">
+          <button className={btnFilterSubmit} type="submit">
             Filtrer
           </button>
         </FilterBar>

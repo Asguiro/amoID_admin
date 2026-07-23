@@ -1,3 +1,4 @@
+import { apiRequest } from "~/server/api/client.server";
 import type {
   AlertDetail,
   AlertItem,
@@ -5,8 +6,6 @@ import type {
   ListQuery,
   PaginatedResponse,
 } from "~/types/admin";
-
-import { daysAgo, filterByQuery, filterByStatus, toPaginated } from "../_shared/mock.utils";
 
 const ALLOWED_TRANSITIONS: Record<AlertStatus, readonly AlertStatus[]> = {
   NEW: ["ASSIGNED"],
@@ -35,160 +34,170 @@ export function assertAlertStatusTransition(
   }
 }
 
-const seeds: Array<{
+type ApiAlert = {
+  id: string;
+  type?: string;
   title: string;
   severity: AlertItem["severity"];
   status: AlertStatus;
+  establishmentName?: string;
+  assigneeName?: string;
   assignee?: string;
-  establishmentName: string;
-  description: string;
-}> = [
-  {
-    title: "Pic de vérifications échouées",
-    severity: "CRITICAL",
-    status: "NEW",
-    establishmentName: "CSRéf Bamako Centre",
-    description: "Le taux d’échec dépasse trois fois la moyenne habituelle sur une fenêtre de 30 minutes.",
-  },
-  {
-    title: "Appareil révoqué réutilisé",
-    severity: "CRITICAL",
-    status: "ASSIGNED",
-    assignee: "Fatoumata Sangaré",
-    establishmentName: "Hôpital du Mali",
-    description: "Une tentative de vérification provient d’un appareil précédemment révoqué.",
-  },
-  {
-    title: "Enrôlements multiples similaires",
-    severity: "HIGH",
-    status: "UNDER_REVIEW",
-    assignee: "Moussa Coulibaly",
-    establishmentName: "Clinique Pasteur",
-    description: "Plusieurs dossiers partagent des attributs d’identité et des empreintes proches.",
-  },
-  {
-    title: "Volume inhabituel de QR temporaires",
-    severity: "HIGH",
-    status: "ESCALATED",
-    assignee: "Aminata Traoré",
-    establishmentName: "CSRéf Kati",
-    description: "Le volume d’émission dépasse le seuil quotidien défini pour cet établissement.",
-  },
-  {
-    title: "Vérifications nocturnes répétées",
-    severity: "MEDIUM",
-    status: "CONFIRMED",
-    assignee: "Fatoumata Sangaré",
-    establishmentName: "Pharmacie du Fleuve",
-    description: "Une série de vérifications a été réalisée hors des horaires d’ouverture.",
-  },
-  {
-    title: "Tentatives sur bénéficiaire suspendu",
-    severity: "MEDIUM",
-    status: "DISMISSED",
-    assignee: "Moussa Coulibaly",
-    establishmentName: "Hôpital Gabriel Touré",
-    description: "Des vérifications concernent un dossier suspendu, expliquées par une régularisation en cours.",
-  },
-];
+  comments?: unknown;
+  entityType?: string;
+  entityId?: string;
+  createdAt: string;
+  updatedAt: string;
+};
 
-const alerts: AlertDetail[] = seeds.map((seed, index) => {
-  const createdAt = daysAgo(index, index + 1);
+function isNotFound(error: unknown): boolean {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "status" in error &&
+      error.status === 404,
+  );
+}
+
+function buildQuery(query: ListQuery) {
+  const params = new URLSearchParams({
+    page: String(query.page),
+    pageSize: String(query.pageSize),
+  });
+  if (query.q) params.set("q", query.q);
+  if (query.status) params.set("status", query.status);
+  return params;
+}
+
+function mapComments(raw: unknown): AlertDetail["comments"] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((item, index) => {
+    if (!item || typeof item !== "object") {
+      return {
+        id: `comment-${index}`,
+        body: String(item),
+        actor: "—",
+        createdAt: new Date().toISOString(),
+      };
+    }
+    const row = item as Record<string, unknown>;
+    return {
+      id: String(row.id ?? `comment-${index}`),
+      body: String(row.body ?? row.message ?? ""),
+      actor: String(row.actor ?? row.by ?? "—"),
+      createdAt: String(row.createdAt ?? row.at ?? new Date().toISOString()),
+    };
+  });
+}
+
+function mapAlert(a: ApiAlert): AlertDetail {
   return {
-    id: `ALT-2026-${String(index + 1).padStart(3, "0")}`,
-    ...seed,
-    createdAt,
-    updatedAt: daysAgo(Math.max(0, index - 1)),
+    id: a.id,
+    title: a.title,
+    severity: a.severity,
+    status: a.status,
+    assignee: a.assigneeName ?? a.assignee,
+    establishmentName: a.establishmentName,
+    createdAt: a.createdAt,
+    updatedAt: a.updatedAt,
+    description: a.type ? `Type : ${a.type}` : "Signal de fraude / conformité.",
     timeline: [
       {
-        id: `timeline-${index}-1`,
-        label: "Alerte générée par le moteur de signaux",
+        id: `${a.id}-created`,
+        label: "Alerte créée",
         actor: "Système",
-        createdAt,
+        createdAt: a.createdAt,
       },
-      ...(seed.assignee
-        ? [{
-            id: `timeline-${index}-2`,
-            label: `Alerte affectée à ${seed.assignee}`,
-            actor: "Supervision fraude",
-            createdAt: daysAgo(Math.max(0, index - 1), 2),
-          }]
+      ...(a.assigneeName || a.assignee
+        ? [
+            {
+              id: `${a.id}-assigned`,
+              label: `Affectée à ${a.assigneeName ?? a.assignee}`,
+              actor: "Supervision",
+              createdAt: a.updatedAt,
+            },
+          ]
         : []),
     ],
-    comments: [],
+    comments: mapComments(a.comments),
   };
-});
-
-function requireAlert(id: string): AlertDetail {
-  const alert = alerts.find((item) => item.id === id);
-  if (!alert) throw new Error("Alerte introuvable.");
-  return alert;
 }
 
 export async function listAlerts(
   query: ListQuery,
+  accessToken: string,
 ): Promise<PaginatedResponse<AlertItem>> {
-  const searched = filterByQuery(alerts, query.q, [
-    (alert) => alert.title,
-    (alert) => alert.assignee ?? "",
-    (alert) => alert.establishmentName ?? "",
-  ]);
-  return toPaginated(filterByStatus(searched, query.status), query.page, query.pageSize);
+  const res = await apiRequest<PaginatedResponse<ApiAlert>>(
+    `/admin/alerts?${buildQuery(query)}`,
+    { accessToken },
+  );
+  return {
+    ...res,
+    items: res.items.map((item) => {
+      const detail = mapAlert(item);
+      const { description: _d, timeline: _t, comments: _c, ...listItem } = detail;
+      return listItem;
+    }),
+  };
 }
 
-export async function getAlertDetail(id: string): Promise<AlertDetail | undefined> {
-  return alerts.find((alert) => alert.id === id);
-}
-
-export async function assignAlert(id: string, assignee: string): Promise<AlertDetail> {
-  const alert = requireAlert(id);
-  if (!assignee.trim()) throw new Error("Le nom de l’analyste est obligatoire.");
-  if (alert.status !== "NEW" && alert.status !== "ASSIGNED") {
-    throw new Error("Seule une alerte nouvelle ou affectée peut être réaffectée.");
+export async function getAlertDetail(
+  id: string,
+  accessToken: string,
+): Promise<AlertDetail | undefined> {
+  try {
+    const item = await apiRequest<ApiAlert>(`/admin/alerts/${id}`, {
+      accessToken,
+    });
+    return mapAlert(item);
+  } catch (error) {
+    if (isNotFound(error)) return undefined;
+    throw error;
   }
-  if (alert.status === "NEW") assertAlertStatusTransition(alert.status, "ASSIGNED");
-  alert.assignee = assignee.trim();
-  alert.status = "ASSIGNED";
-  alert.updatedAt = new Date().toISOString();
-  alert.timeline.unshift({
-    id: crypto.randomUUID(),
-    label: `Alerte affectée à ${alert.assignee}`,
-    actor: "Administrateur",
-    createdAt: alert.updatedAt,
-  });
-  return alert;
 }
 
-export async function addAlertComment(id: string, body: string): Promise<AlertDetail> {
-  const alert = requireAlert(id);
-  if (!body.trim()) throw new Error("Le commentaire ne peut pas être vide.");
-  const createdAt = new Date().toISOString();
-  alert.comments.unshift({
-    id: crypto.randomUUID(),
-    body: body.trim(),
-    actor: "Administrateur",
-    createdAt,
+export async function assignAlert(
+  id: string,
+  assignee: string,
+  accessToken: string,
+): Promise<AlertDetail> {
+  if (!assignee.trim()) throw new Error("Le nom de l’analyste est obligatoire.");
+  const item = await apiRequest<ApiAlert>(`/admin/alerts/${id}/assign`, {
+    method: "POST",
+    accessToken,
+    body: { assigneeId: assignee.trim() },
   });
-  alert.updatedAt = createdAt;
-  return alert;
+  return mapAlert(item);
+}
+
+export async function addAlertComment(
+  id: string,
+  body: string,
+  accessToken: string,
+): Promise<AlertDetail> {
+  if (!body.trim()) throw new Error("Le commentaire ne peut pas être vide.");
+  const item = await apiRequest<ApiAlert>(`/admin/alerts/${id}/comment`, {
+    method: "POST",
+    accessToken,
+    body: { message: body.trim() },
+  });
+  return mapAlert(item);
 }
 
 export async function updateAlertStatus(
   id: string,
   status: AlertStatus,
   reason: string,
+  accessToken: string,
 ): Promise<AlertDetail> {
-  const alert = requireAlert(id);
   if (!reason.trim()) throw new Error("Le motif de la décision est obligatoire.");
-  assertAlertStatusTransition(alert.status, status);
-  const createdAt = new Date().toISOString();
-  alert.status = status;
-  alert.updatedAt = createdAt;
-  alert.timeline.unshift({
-    id: crypto.randomUUID(),
-    label: `${status.replaceAll("_", " ")} — ${reason.trim()}`,
-    actor: "Administrateur",
-    createdAt,
+  const current = await getAlertDetail(id, accessToken);
+  if (!current) throw new Error("Alerte introuvable.");
+  assertAlertStatusTransition(current.status, status);
+  const item = await apiRequest<ApiAlert>(`/admin/alerts/${id}/change-status`, {
+    method: "POST",
+    accessToken,
+    body: { status },
   });
-  return alert;
+  return mapAlert(item);
 }

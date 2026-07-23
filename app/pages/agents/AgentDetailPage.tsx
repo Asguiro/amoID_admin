@@ -7,6 +7,7 @@ import { DetailPageLayout } from "~/components/ui/DetailPageLayout";
 import { DetailSectionCard } from "~/components/ui/DetailSectionCard";
 import { FormField } from "~/components/ui/FormField";
 import { AgentStatusBadge } from "~/components/ui/StatusBadge";
+import { btnHeaderAction } from "~/components/ui/uiClasses";
 import type { Agent } from "~/types/admin";
 import { ADMIN_ROLE_LABELS } from "~/types/admin";
 import { CsrfField } from "~/components/security/CsrfProvider";
@@ -50,7 +51,7 @@ export function AgentDetailPage({
               Voir les appareils
             </Link>
             <Link
-              className="btn btn-primary h-10 rounded-xl"
+              className={btnHeaderAction}
               to={`/agents/${agent.id}/edit`}
             >
               Modifier

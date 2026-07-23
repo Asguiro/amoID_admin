@@ -63,10 +63,31 @@ describe("devices.trust", () => {
 });
 
 describe("settings.service", () => {
+  beforeEach(() => {
+    apiRequestMock.mockReset();
+  });
+
   it("met à jour les paramètres opérationnels", async () => {
-    const updated = await updateAppSettings({ maxFaceAttempts: 5 });
+    apiRequestMock
+      .mockResolvedValueOnce({
+        items: [
+          { key: "ops.maxFaceAttempts", value: 3 },
+          { key: "ops.maxQrDuration", value: "7D" },
+          { key: "ops.auditRetentionDays", value: 365 },
+        ],
+      })
+      .mockResolvedValueOnce({ key: "ops.maxFaceAttempts", value: 5 });
+
+    const updated = await updateAppSettings({ maxFaceAttempts: 5 }, "token");
     expect(updated.maxFaceAttempts).toBe(5);
-    expect((await getAppSettings()).maxFaceAttempts).toBe(5);
+    expect(apiRequestMock).toHaveBeenCalledWith(
+      "/admin/settings/ops.maxFaceAttempts",
+      expect.objectContaining({
+        method: "PATCH",
+        accessToken: "token",
+        body: { value: 5 },
+      }),
+    );
   });
 
   it("met à jour une règle de fraude", async () => {
@@ -79,6 +100,18 @@ describe("settings.service", () => {
     const listed = await listFraudRules();
     expect(listed.find((item) => item.id === "rule_qr_abuse")?.enabled).toBe(
       false,
+    );
+  });
+
+  it("lit les paramètres via API", async () => {
+    apiRequestMock.mockResolvedValueOnce({
+      items: [{ key: "ops.maxFaceAttempts", value: 4 }],
+    });
+    const settings = await getAppSettings("token");
+    expect(settings.maxFaceAttempts).toBe(4);
+    expect(apiRequestMock).toHaveBeenCalledWith(
+      "/admin/settings",
+      expect.objectContaining({ accessToken: "token" }),
     );
   });
 });

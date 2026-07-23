@@ -13,6 +13,7 @@ import { FormField } from "~/components/ui/FormField";
 import { PreparedMediaSlot } from "~/components/ui/MediaGallery";
 import { SearchField } from "~/components/ui/SearchField";
 import { QrStatusBadge } from "~/components/ui/StatusBadge";
+import { btnFilterSubmit } from "~/components/ui/uiClasses";
 import type {
   ListQuery,
   PaginatedResponse,
@@ -126,7 +127,7 @@ export function TemporaryQrListPage({
                 (reason) => ({ value: reason, label: reasonLabels[reason] }),
               )}
             />
-            <button className="btn btn-primary h-11 rounded-2xl px-5" type="submit">
+            <button className={btnFilterSubmit} type="submit">
               Filtrer
             </button>
           </FilterBar>

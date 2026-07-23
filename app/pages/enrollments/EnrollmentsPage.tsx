@@ -9,8 +9,13 @@ import { DetailSectionCard } from "~/components/ui/DetailSectionCard";
 import { FilterBar } from "~/components/ui/FilterBar";
 import { FormField } from "~/components/ui/FormField";
 import { SearchField } from "~/components/ui/SearchField";
-import { PreparedMediaSlot } from "~/components/ui/MediaGallery";
+import {
+  MediaGallery,
+  PreparedMediaSlot,
+  splitDossierMedia,
+} from "~/components/ui/MediaGallery";
 import { EnrollmentStatusBadge, StatusBadge } from "~/components/ui/StatusBadge";
+import { btnFilterSubmit, btnHeaderAction } from "~/components/ui/uiClasses";
 import type { Enrollment, ListQuery, PaginatedResponse } from "~/types/admin";
 import { CsrfField } from "~/components/security/CsrfProvider";
 import { buildListHref, countActiveListFilters } from "~/utils/search-params";
@@ -84,7 +89,7 @@ export function EnrollmentsPage({
           !pendingOnly ? (
             <Link
               to="/enrollments/pending"
-              className="btn btn-primary h-10 rounded-xl"
+              className={btnHeaderAction}
             >
               Voir la file d’attente
             </Link>
@@ -105,7 +110,7 @@ export function EnrollmentsPage({
             defaultValue={query.q}
             placeholder="Bénéficiaire, identifiant ou établissement"
           />
-          <button className="btn btn-primary h-11 rounded-2xl px-5" type="submit">
+          <button className={btnFilterSubmit} type="submit">
             Rechercher
           </button>
         </FilterBar>
@@ -128,6 +133,49 @@ const qualityLabels = {
   ACCEPTABLE: "Acceptable",
   POOR: "Faible",
 } as const;
+
+function EnrollmentMediaSection({ enrollment }: { enrollment: Enrollment }) {
+  const { galleryAssets, restrictedFace } = splitDossierMedia(enrollment.media);
+  const hasAnyMedia = (enrollment.media?.length ?? 0) > 0;
+
+  if (!hasAnyMedia) {
+    return (
+      <div className="grid gap-4 sm:grid-cols-2">
+        <PreparedMediaSlot
+          label="Capture faciale"
+          kind="FACE_CAPTURE"
+          referenceId={enrollment.faceCaptureSessionId}
+          availability={
+            enrollment.faceCaptureSessionId ? "RESTRICTED" : "MISSING"
+          }
+        />
+        <PreparedMediaSlot
+          label="Pièces du dossier"
+          kind="ID_DOCUMENT"
+          availability="MISSING"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {galleryAssets.length > 0 ? <MediaGallery assets={galleryAssets} /> : null}
+      {restrictedFace ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <PreparedMediaSlot
+            label={restrictedFace.label || "Capture faciale"}
+            kind="FACE_CAPTURE"
+            referenceId={
+              restrictedFace.referenceId ?? enrollment.faceCaptureSessionId
+            }
+            availability="RESTRICTED"
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function EnrollmentDetailPage({
   enrollment,
@@ -210,15 +258,7 @@ export function EnrollmentDetailPage({
             description="Les contenus biométriques restent protégés et ne sont chargés qu’avec une autorisation adaptée."
             badge={<span className="badge badge-outline">Données sensibles</span>}
           >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <PreparedMediaSlot
-                label="Capture faciale"
-                kind="FACE_CAPTURE"
-                referenceId={enrollment.faceCaptureSessionId}
-                availability={enrollment.faceCaptureSessionId ? "RESTRICTED" : "SOURCE_NOT_CONNECTED"}
-              />
-              <PreparedMediaSlot label="Pièces du dossier" kind="ID_DOCUMENT" />
-            </div>
+            <EnrollmentMediaSection enrollment={enrollment} />
           </DetailSectionCard>
 
           {enrollment.requiredFields ? (

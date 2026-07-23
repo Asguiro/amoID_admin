@@ -7,6 +7,7 @@ import { FilterBar } from "~/components/ui/FilterBar";
 import { FilterSelect } from "~/components/ui/FilterSelect";
 import { SearchField } from "~/components/ui/SearchField";
 import { AgentStatusBadge } from "~/components/ui/StatusBadge";
+import { btnFilterSubmit, btnHeaderAction } from "~/components/ui/uiClasses";
 import type { Agent, ListQuery, PaginatedResponse } from "~/types/admin";
 import { ADMIN_ROLE_LABELS } from "~/types/admin";
 import { buildListHref, countActiveListFilters } from "~/utils/search-params";
@@ -29,7 +30,7 @@ export function AgentsListPage({ data, query }: { data: PaginatedResponse<Agent>
     buildListHref("/agents", query, { page, pageSize });
   return (
     <>
-      <PageHeader title="Agents" description="Gérez les agents et leurs accès opérationnels." actions={<Link className="btn btn-primary h-10 rounded-xl" to="/agents/new">Nouvel agent</Link>} />
+      <PageHeader title="Agents" description="Gérez les agents et leurs accès opérationnels." actions={<Link className={btnHeaderAction} to="/agents/new">Nouvel agent</Link>} />
       <Form method="get">
         <FilterBar
           activeFilterCount={countActiveListFilters(query)}
@@ -52,7 +53,7 @@ export function AgentsListPage({ data, query }: { data: PaginatedResponse<Agent>
               { value: "ARCHIVED", label: "Archivés" },
             ]}
           />
-          <button className="btn btn-primary h-11 rounded-2xl px-5" type="submit">
+          <button className={btnFilterSubmit} type="submit">
             Filtrer
           </button>
         </FilterBar>

@@ -11,9 +11,14 @@ import { EntityAvatar } from "~/components/ui/EntityAvatar";
 import { FilterBar } from "~/components/ui/FilterBar";
 import { FilterSelect } from "~/components/ui/FilterSelect";
 import { SearchField } from "~/components/ui/SearchField";
-import { PreparedMediaSlot } from "~/components/ui/MediaGallery";
+import {
+  MediaGallery,
+  PreparedMediaSlot,
+  splitDossierMedia,
+} from "~/components/ui/MediaGallery";
 import { SensitiveDataReveal } from "~/components/ui/SensitiveDataReveal";
 import { StatusBadge } from "~/components/ui/StatusBadge";
+import { btnFilterSubmit } from "~/components/ui/uiClasses";
 import type {
   Beneficiary,
   BeneficiaryCoverageStatus,
@@ -143,7 +148,7 @@ export function BeneficiariesPage({
               { value: "DEPENDENT", label: "Ayant droit" },
             ]}
           />
-          <button className="btn btn-primary h-11 rounded-2xl px-5" type="submit">
+          <button className={btnFilterSubmit} type="submit">
             Filtrer
           </button>
         </FilterBar>
@@ -317,17 +322,9 @@ export function BeneficiaryDetailPage({
         <DetailSectionCard
           className="lg:col-span-2"
           title="Photos et documents"
-          description="Emplacements préparés pour le portrait, les captures et les justificatifs du dossier."
+          description="Portrait, captures et justificatifs du dossier bénéficiaire."
         >
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <PreparedMediaSlot label="Portrait bénéficiaire" kind="PORTRAIT" />
-            <PreparedMediaSlot
-              label="Capture biométrique"
-              kind="FACE_CAPTURE"
-              availability={beneficiary.hasBiometrics ? "RESTRICTED" : "MISSING"}
-            />
-            <PreparedMediaSlot label="Documents d’identité" kind="ID_DOCUMENT" />
-          </div>
+          <BeneficiaryMediaSection beneficiary={beneficiary} />
         </DetailSectionCard>
 
         {canReadHealth && beneficiary.hasHealthInfo && beneficiary.healthSummary ? (
@@ -364,6 +361,45 @@ export function BeneficiaryDetailPage({
         ) : null}
       </div>
     </>
+  );
+}
+
+function BeneficiaryMediaSection({
+  beneficiary,
+}: {
+  beneficiary: BeneficiaryDetail;
+}) {
+  const { galleryAssets, restrictedFace } = splitDossierMedia(beneficiary.media);
+  const hasAnyMedia = (beneficiary.media?.length ?? 0) > 0;
+
+  if (!hasAnyMedia) {
+    return (
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <PreparedMediaSlot label="Portrait bénéficiaire" kind="PORTRAIT" availability="MISSING" />
+        <PreparedMediaSlot
+          label="Capture biométrique"
+          kind="FACE_CAPTURE"
+          availability={beneficiary.hasBiometrics ? "RESTRICTED" : "MISSING"}
+        />
+        <PreparedMediaSlot label="Documents d’identité" kind="ID_DOCUMENT" availability="MISSING" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {galleryAssets.length > 0 ? <MediaGallery assets={galleryAssets} /> : null}
+      {restrictedFace ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <PreparedMediaSlot
+            label={restrictedFace.label || "Capture biométrique"}
+            kind="FACE_CAPTURE"
+            referenceId={restrictedFace.referenceId}
+            availability="RESTRICTED"
+          />
+        </div>
+      ) : null}
+    </div>
   );
 }
 

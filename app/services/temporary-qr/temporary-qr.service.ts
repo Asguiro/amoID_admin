@@ -1,137 +1,156 @@
+import { apiRequest } from "~/server/api/client.server";
 import type {
   ListQuery,
   PaginatedResponse,
   TemporaryQr,
   TemporaryQrDetail,
   TemporaryQrDuration,
-  TemporaryQrReason,
   TemporaryQrStatus,
 } from "~/types/admin";
 
-import { daysAgo, filterByQuery, filterByStatus, toPaginated } from "../_shared/mock.utils";
+type ApiQr = {
+  id: string;
+  jti?: string;
+  status: TemporaryQrStatus;
+  reason: TemporaryQr["reason"];
+  beneficiaryMasked: string;
+  beneficiaryId: string;
+  issuerName?: string;
+  issuedBy?: string;
+  establishmentName?: string;
+  expiresAt: string;
+  createdAt: string;
+  issuedAt?: string;
+  printReference?: string;
+  attestationUrl?: string;
+  faceCaptureSessionId?: string;
+  usageCount?: number;
+  duration?: TemporaryQrDuration;
+  revokeReason?: string;
+  audit?: TemporaryQrDetail["audit"];
+};
 
-const reasons: TemporaryQrReason[] = [
-  "LOST_CARD",
-  "DAMAGED_CARD",
-  "RENEWAL_PENDING",
-  "OPERATIONAL",
-];
-const durations: TemporaryQrDuration[] = ["24H", "72H", "7D"];
+function isNotFound(error: unknown): boolean {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "status" in error &&
+      error.status === 404,
+  );
+}
 
-let temporaryQrs: TemporaryQrDetail[] = [
-  ["qr_001", "ben_001", "A•••••• T•••••", "ACTIVE", "Mamadou Diallo", 0, 0],
-  ["qr_002", "ben_002", "M••••• D•••••", "USED", "Awa Konaté", 1, 1],
-  ["qr_003", "ben_003", "F•••••••• K•••", "EXPIRED", "Boubacar Keïta", 0, 2],
-  ["qr_004", "ben_004", "I•••••• C••••••••", "REVOKED", "Fanta Touré", 0, 3],
-  ["qr_005", "ben_001", "A•••••• T•••••", "USED", "Mamadou Diallo", 1, 0],
-  ["qr_006", "ben_006", "O•••• S••••••", "ACTIVE", "Mariam Cissé", 0, 1],
-  ["qr_007", "ben_007", "A•••••• D•••••", "ACTIVE", "Issa Traoré", 0, 2],
-  ["qr_008", "ben_008", "B••••• K••••", "EXPIRED", "Aminata Maïga", 0, 3],
-].map(([id, beneficiaryId, beneficiaryMasked, status, issuedBy, usageCount, reasonIdx], index) => ({
-  id: id as string,
-  beneficiaryId: beneficiaryId as string,
-  beneficiaryMasked: beneficiaryMasked as string,
-  status: status as TemporaryQrStatus,
-  reason: reasons[reasonIdx as number]!,
-  duration: durations[index % 3]!,
-  issuedBy: issuedBy as string,
-  issuedAt: daysAgo(index + 1),
-  expiresAt: daysAgo(index - 1),
-  usageCount: usageCount as number,
-  printReference: `PRINT-${id}`,
-  faceCaptureSessionId: `face_${id}`,
-  revokeReason: status === "REVOKED" ? "Usage frauduleux suspecté" : undefined,
-  audit: [
-    {
-      id: `${id}_issued`,
-      label: `QR émis (${reasons[reasonIdx as number]}, ${durations[index % 3]})`,
-      actor: issuedBy as string,
-      createdAt: daysAgo(index + 1),
-    },
-    ...(usageCount
-      ? [
-          {
-            id: `${id}_scan`,
-            label: "Scan au point de soin",
-            actor: "Terminal terrain",
-            createdAt: daysAgo(index),
-          },
-        ]
-      : []),
-    ...(status === "REVOKED"
-      ? [
-          {
-            id: `${id}_revoked`,
-            label: "QR révoqué : Usage frauduleux suspecté",
-            actor: "Administrateur",
-            createdAt: daysAgo(Math.max(0, index - 1)),
-          },
-        ]
-      : []),
-  ],
-}));
+function buildQuery(query: ListQuery & { beneficiaryId?: string }) {
+  const params = new URLSearchParams({
+    page: String(query.page),
+    pageSize: String(query.pageSize),
+  });
+  if (query.q) params.set("q", query.q);
+  if (query.status) params.set("status", query.status);
+  if (query.reason) params.set("reason", query.reason);
+  if (query.beneficiaryId) params.set("beneficiaryId", query.beneficiaryId);
+  return params;
+}
+
+function inferDuration(createdAt: string, expiresAt: string): TemporaryQrDuration {
+  const hours =
+    (new Date(expiresAt).getTime() - new Date(createdAt).getTime()) / 3_600_000;
+  if (hours <= 30) return "24H";
+  if (hours <= 90) return "72H";
+  return "7D";
+}
+
+function toListItem(q: ApiQr): TemporaryQr {
+  const issuedAt = q.issuedAt ?? q.createdAt;
+  return {
+    id: q.id,
+    beneficiaryMasked: q.beneficiaryMasked,
+    status: q.status,
+    reason: q.reason,
+    duration: q.duration ?? inferDuration(issuedAt, q.expiresAt),
+    issuedBy: q.issuedBy ?? q.issuerName ?? "—",
+    issuedAt,
+    expiresAt: q.expiresAt,
+    usageCount: q.usageCount ?? (q.status === "USED" ? 1 : 0),
+  };
+}
+
+function toDetail(q: ApiQr): TemporaryQrDetail {
+  const list = toListItem(q);
+  return {
+    ...list,
+    beneficiaryId: q.beneficiaryId,
+    printReference: q.printReference ?? q.attestationUrl,
+    faceCaptureSessionId: q.faceCaptureSessionId,
+    revokeReason: q.revokeReason,
+    audit: q.audit ?? [
+      {
+        id: `${q.id}-issued`,
+        label: `QR émis (${q.reason})`,
+        actor: list.issuedBy,
+        createdAt: list.issuedAt,
+      },
+      ...(q.status === "REVOKED"
+        ? [
+            {
+              id: `${q.id}-revoked`,
+              label: "QR révoqué",
+              actor: "Administrateur",
+              createdAt: q.expiresAt,
+            },
+          ]
+        : []),
+    ],
+  };
+}
 
 export async function listTemporaryQrs(
   query: ListQuery & { beneficiaryId?: string },
+  accessToken: string,
 ): Promise<PaginatedResponse<TemporaryQr>> {
-  let items = filterByQuery(temporaryQrs, query.q, [
-    (item) => item.id,
-    (item) => item.beneficiaryMasked,
-    (item) => item.issuedBy,
-  ]);
-  items = filterByStatus(items, query.status);
-  if (query.reason) {
-    items = items.filter((item) => item.reason === query.reason);
-  }
+  const res = await apiRequest<PaginatedResponse<ApiQr>>(
+    `/admin/temporary-qr?${buildQuery(query)}`,
+    { accessToken },
+  );
+  let items = res.items;
   if (query.beneficiaryId) {
     items = items.filter((item) => item.beneficiaryId === query.beneficiaryId);
   }
-  return toPaginated(
-    items.map(
-      ({
-        audit: _audit,
-        beneficiaryId: _beneficiaryId,
-        printReference: _print,
-        faceCaptureSessionId: _face,
-        revokeReason: _revoke,
-        ...item
-      }) => item,
-    ),
-    query.page,
-    query.pageSize,
-  );
+  if (query.reason) {
+    items = items.filter((item) => item.reason === query.reason);
+  }
+  return {
+    ...res,
+    items: items.map(toListItem),
+  };
 }
 
 export async function getTemporaryQr(
   id: string,
+  accessToken: string,
 ): Promise<TemporaryQrDetail | null> {
-  return temporaryQrs.find((item) => item.id === id) ?? null;
+  try {
+    const item = await apiRequest<ApiQr>(`/admin/temporary-qr/${id}`, {
+      accessToken,
+    });
+    return toDetail(item);
+  } catch (error) {
+    if (isNotFound(error)) return null;
+    throw error;
+  }
 }
 
 export async function revokeTemporaryQr(
   id: string,
   reason: string,
+  accessToken: string,
 ): Promise<TemporaryQrDetail> {
   if (!reason.trim()) throw new Error("Le motif de révocation est obligatoire.");
-  const index = temporaryQrs.findIndex((item) => item.id === id);
-  if (index < 0) throw new Error("QR temporaire introuvable.");
-  const current = temporaryQrs[index]!;
-  const updated: TemporaryQrDetail = {
-    ...current,
-    status: "REVOKED",
-    revokeReason: reason.trim(),
-    audit: [
-      ...current.audit,
-      {
-        id: `${id}_revoked`,
-        label: `QR révoqué : ${reason.trim()}`,
-        actor: "Administrateur",
-        createdAt: new Date().toISOString(),
-      },
-    ],
-  };
-  temporaryQrs[index] = updated;
-  return updated;
+  const item = await apiRequest<ApiQr>(`/admin/temporary-qr/${id}/revoke`, {
+    method: "POST",
+    accessToken,
+    body: { reason: reason.trim() },
+  });
+  return toDetail({ ...item, revokeReason: reason.trim() });
 }
 
 export const list = listTemporaryQrs;

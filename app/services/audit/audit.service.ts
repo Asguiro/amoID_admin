@@ -1,53 +1,99 @@
+import { apiRequest } from "~/server/api/client.server";
 import type { AuditEvent, ListQuery, PaginatedResponse } from "~/types/admin";
 
-import { daysAgo, filterByQuery, filterByStatus, toPaginated } from "../_shared/mock.utils";
+type ApiAuditLog = {
+  id: string;
+  createdAt: string;
+  actorId?: string | null;
+  actorRole?: string;
+  action: string;
+  entityType?: string;
+  entityId?: string | null;
+  result?: string;
+  reason?: string | null;
+  correlationId: string;
+};
 
-const actions = [
-  ["Connexion administrateur", "Aminata Traoré", "Session web", "Authentification", "SUCCESS"],
-  ["Consultation bénéficiaire", "Moussa Coulibaly", "BEN-10482", "Bénéficiaires", "SUCCESS"],
-  ["Accès sensible refusé", "Oumar Diallo", "BEN-10931", "Bénéficiaires", "DENIED"],
-  ["Affectation d’alerte", "Aminata Traoré", "ALT-2026-001", "Alertes", "SUCCESS"],
-  ["Décision fraude confirmée", "Fatoumata Sangaré", "ALT-2026-002", "Alertes", "SUCCESS"],
-  ["Export opérationnel", "Moussa Coulibaly", "EXP-104", "Rapports", "SUCCESS"],
-  ["Révocation appareil", "Aminata Traoré", "DEV-882", "Appareils", "SUCCESS"],
-  ["Validation enrôlement", "Fatoumata Sangaré", "ENR-5031", "Enrôlements", "SUCCESS"],
-  ["Échec de connexion", "Utilisateur inconnu", "Session web", "Authentification", "FAILED"],
-  ["Lecture du journal", "Moussa Coulibaly", "AUD-001", "Audit", "SUCCESS"],
-  ["Modification d’agent", "Aminata Traoré", "AGT-122", "Agents", "SUCCESS"],
-  ["Création établissement", "Aminata Traoré", "EST-045", "Établissements", "SUCCESS"],
-  ["Révocation QR temporaire", "Fatoumata Sangaré", "QR-892", "QR temporaires", "SUCCESS"],
-  ["Consultation rapport fraude", "Moussa Coulibaly", "RPT-FRAUD", "Rapports", "SUCCESS"],
-  ["Changement de rôle refusé", "Oumar Diallo", "AGT-089", "Paramètres", "DENIED"],
-  ["Analyse biométrique", "Fatoumata Sangaré", "VER-4021", "Vérifications", "SUCCESS"],
-  ["Export échoué", "Moussa Coulibaly", "EXP-099", "Rapports", "FAILED"],
-] as const;
+function isNotFound(error: unknown): boolean {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "status" in error &&
+      error.status === 404,
+  );
+}
 
-const auditEvents: AuditEvent[] = actions.map(
-  ([action, actor, target, scope, status], index) => ({
-    id: `AUD-${String(index + 1).padStart(4, "0")}`,
-    action,
-    actor,
-    target,
-    scope,
-    status,
-    createdAt: daysAgo(Math.floor(index / 3), index % 4),
-    correlationId: `corr-${2026000 + index}`,
-  }),
-);
+function buildQuery(query: ListQuery) {
+  const params = new URLSearchParams({
+    page: String(query.page),
+    pageSize: String(query.pageSize),
+  });
+  if (query.q) params.set("q", query.q);
+  if (query.status) params.set("action", query.status);
+  return params;
+}
+
+function mapResult(result?: string): AuditEvent["status"] {
+  const normalized = (result ?? "OK").toUpperCase();
+  if (normalized === "DENIED" || normalized === "FORBIDDEN") return "DENIED";
+  if (
+    normalized === "FAILED" ||
+    normalized === "ERROR" ||
+    normalized === "KO"
+  ) {
+    return "FAILED";
+  }
+  return "SUCCESS";
+}
+
+function mapEvent(row: ApiAuditLog): AuditEvent {
+  return {
+    id: row.id,
+    action: row.action,
+    actor: row.actorId ?? row.actorRole ?? "—",
+    target: row.entityId ?? row.reason ?? "—",
+    scope: row.entityType ?? "—",
+    status: mapResult(row.result),
+    createdAt:
+      typeof row.createdAt === "string"
+        ? row.createdAt
+        : new Date(String(row.createdAt)).toISOString(),
+    correlationId: row.correlationId,
+  };
+}
 
 export async function listAuditEvents(
   query: ListQuery,
+  accessToken: string,
 ): Promise<PaginatedResponse<AuditEvent>> {
-  const searched = filterByQuery(auditEvents, query.q, [
-    (event) => event.action,
-    (event) => event.actor,
-    (event) => event.target,
-    (event) => event.correlationId,
-  ]);
-  const filtered = filterByStatus(searched, query.status);
-  return toPaginated(filtered, query.page, query.pageSize);
+  const res = await apiRequest<PaginatedResponse<ApiAuditLog>>(
+    `/admin/audit-logs?${buildQuery(query)}`,
+    { accessToken },
+  );
+  return {
+    ...res,
+    items: res.items.map(mapEvent),
+  };
 }
 
-export async function getAuditEvent(id: string): Promise<AuditEvent | undefined> {
-  return auditEvents.find((event) => event.id === id);
+export async function getAuditEvent(
+  id: string,
+  accessToken: string,
+): Promise<AuditEvent | undefined> {
+  try {
+    const row = await apiRequest<ApiAuditLog>(`/admin/audit-logs/${id}`, {
+      accessToken,
+    });
+    return mapEvent({
+      ...row,
+      createdAt:
+        typeof row.createdAt === "string"
+          ? row.createdAt
+          : new Date(String(row.createdAt)).toISOString(),
+      correlationId: row.correlationId ?? "—",
+    });
+  } catch (error) {
+    if (isNotFound(error)) return undefined;
+    throw error;
+  }
 }

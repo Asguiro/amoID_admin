@@ -10,6 +10,7 @@ import { FilterBar } from "~/components/ui/FilterBar";
 import { FilterSelect } from "~/components/ui/FilterSelect";
 import { SearchField } from "~/components/ui/SearchField";
 import { StatusBadge } from "~/components/ui/StatusBadge";
+import { btnFilterSubmit } from "~/components/ui/uiClasses";
 import type { AuditEvent, ListQuery, PaginatedResponse } from "~/types/admin";
 import { buildListHref, countActiveListFilters } from "~/utils/search-params";
 
@@ -85,7 +86,7 @@ export function AuditListPage({
               { value: "FAILED", label: "Échoué" },
             ]}
           />
-          <button className="btn btn-primary h-11 rounded-2xl px-5" type="submit">
+          <button className={btnFilterSubmit} type="submit">
             Filtrer
           </button>
         </FilterBar>

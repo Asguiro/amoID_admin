@@ -18,7 +18,7 @@ interface TablePagination {
 }
 
 interface DataTableProps<TData> {
-  columns: ColumnDef<TData, any>[];
+  columns: ColumnDef<TData, unknown>[];
   data: TData[];
   emptyTitle?: string;
   emptyDescription?: string;

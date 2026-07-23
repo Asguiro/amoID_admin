@@ -6,6 +6,7 @@ import { DetailSectionCard } from "~/components/ui/DetailSectionCard";
 import { FormField } from "~/components/ui/FormField";
 import { PreparedMediaSlot } from "~/components/ui/MediaGallery";
 import { StatusBadge } from "~/components/ui/StatusBadge";
+import { btnHeaderAction } from "~/components/ui/uiClasses";
 import { CsrfField } from "~/components/security/CsrfProvider";
 import type { Establishment } from "~/types/admin";
 
@@ -39,7 +40,7 @@ export function EstablishmentDetailPage({
         }
         actions={
           <Link
-            className="btn btn-primary h-10 rounded-xl"
+            className={btnHeaderAction}
             to={`/establishments/${establishment.id}/edit`}
           >
             Modifier

@@ -3,6 +3,7 @@ import { getDashboardOverview } from "~/services/dashboard/dashboard.service";
 import { parseDashboardSearchParams } from "~/utils/search-params";
 
 import { requireAnyPermission } from "../auth/require-permission.server";
+import { requireAccessToken } from "../session.server";
 
 export async function loadDashboard(request: Request) {
   const user = await requireAnyPermission(request, [
@@ -10,6 +11,7 @@ export async function loadDashboard(request: Request) {
     permissions.dashboardReadRegion,
     permissions.dashboardReadEstablishment,
   ]);
+  const accessToken = await requireAccessToken(request);
 
   const { period, empty, forceError } = parseDashboardSearchParams(
     new URL(request.url).searchParams,
@@ -28,7 +30,12 @@ export async function loadDashboard(request: Request) {
     );
   }
 
-  const overview = await getDashboardOverview({ user, period, empty });
+  const overview = await getDashboardOverview({
+    user,
+    period,
+    empty,
+    accessToken,
+  });
 
   return {
     user,

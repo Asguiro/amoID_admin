@@ -91,6 +91,10 @@ h3,
   box-shadow: var(--amo-shadow);
 }
 
+.amo-shadow-soft {
+  box-shadow: 0 8px 24px rgb(11 27 51 / 0.05);
+}
+
 .amo-input,
 .amo-select,
 .amo-textarea {

@@ -11,6 +11,7 @@ import {
 
 import { requirePermission } from "../auth/require-permission.server";
 import { requireCsrfToken } from "../security/csrf.server";
+import { requireAccessToken } from "../session.server";
 
 export async function loadReportsHub(request: Request) {
   const user = await requirePermission(request, permissions.reportRead);
@@ -47,12 +48,14 @@ export async function loadFraudReport(request: Request) {
 export async function createReportExport(request: Request, reportId: string) {
   await requireCsrfToken(request);
   await requirePermission(request, permissions.reportExport);
-  return { ok: true as const, job: await createExportJob(reportId) };
+  const accessToken = await requireAccessToken(request);
+  return { ok: true as const, job: await createExportJob(reportId, accessToken) };
 }
 
 export async function loadExportJob(request: Request, id: string) {
   await requirePermission(request, permissions.reportRead);
-  const job = await getExportJob(id);
+  const accessToken = await requireAccessToken(request);
+  const job = await getExportJob(id, accessToken);
   if (!job) throw new Response("Export introuvable.", { status: 404 });
   return { job };
 }

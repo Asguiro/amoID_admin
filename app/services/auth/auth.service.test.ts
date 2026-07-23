@@ -64,7 +64,11 @@ describe("authenticateUser", () => {
 });
 
 describe("getDashboardOverview", () => {
-  it("scales KPIs by period", async () => {
+  beforeEach(() => {
+    apiRequestMock.mockReset();
+  });
+
+  it("compose summary, trends et alerts API", async () => {
     const user = {
       id: "1",
       displayName: "Test",
@@ -73,19 +77,52 @@ describe("getDashboardOverview", () => {
       permissions: [permissions.dashboardReadGlobal],
     };
 
-    const week = await getDashboardOverview({ user, period: "7d" });
-    const month = await getDashboardOverview({ user, period: "30d" });
+    apiRequestMock
+      .mockResolvedValueOnce({
+        generatedAt: "2026-07-23T00:00:00.000Z",
+        kpis: [
+          {
+            id: "beneficiaries",
+            label: "Bénéficiaires",
+            value: 10,
+            trendPercent: 0,
+            trendIntent: "neutral",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        generatedAt: "2026-07-23T00:00:00.000Z",
+        points: [
+          { date: "2026-07-22", verifications: 3 },
+          { date: "2026-07-23", verifications: 5 },
+        ],
+      })
+      .mockResolvedValueOnce({
+        items: [
+          {
+            id: "a1",
+            title: "Alerte",
+            severity: "HIGH",
+            status: "NEW",
+            createdAt: "2026-07-23T00:00:00.000Z",
+          },
+        ],
+      });
 
-    expect(week.period).toBe("7d");
-    expect(month.kpis[0]?.value).toBeGreaterThan(week.kpis[0]?.value ?? 0);
-    expect(week.series).toHaveLength(7);
-    expect(month.series).toHaveLength(14);
-    expect(
-      week.kpis.find((kpi) => kpi.id === "alerts_critical")?.trendIntent,
-    ).toBe("negative");
-    expect(
-      week.kpis.find((kpi) => kpi.id === "incomplete_dossiers")?.trendIntent,
-    ).toBe("positive");
+    const overview = await getDashboardOverview({
+      user,
+      period: "7d",
+      accessToken: "token",
+    });
+
+    expect(overview.period).toBe("7d");
+    expect(overview.kpis).toHaveLength(1);
+    expect(overview.series).toHaveLength(2);
+    expect(overview.priorityAlerts).toHaveLength(1);
+    expect(apiRequestMock).toHaveBeenCalledWith(
+      "/admin/dashboard/summary",
+      expect.objectContaining({ accessToken: "token" }),
+    );
   });
 
   it("returns empty dashboard collections when requested", async () => {
@@ -101,6 +138,7 @@ describe("getDashboardOverview", () => {
       user,
       period: "90d",
       empty: true,
+      accessToken: "token",
     });
 
     expect(overview).toMatchObject({
@@ -110,5 +148,6 @@ describe("getDashboardOverview", () => {
       recentActivity: [],
       series: [],
     });
+    expect(apiRequestMock).not.toHaveBeenCalled();
   });
 });

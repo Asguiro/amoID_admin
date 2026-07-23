@@ -8,6 +8,7 @@ import { FilterBar } from "~/components/ui/FilterBar";
 import { FilterSelect } from "~/components/ui/FilterSelect";
 import { SearchField } from "~/components/ui/SearchField";
 import { DeviceStatusBadge, StatusBadge } from "~/components/ui/StatusBadge";
+import { btnFilterSubmit } from "~/components/ui/uiClasses";
 import type { Agent, Device, ListQuery, PaginatedResponse } from "~/types/admin";
 import { buildListHref, countActiveListFilters } from "~/utils/search-params";
 
@@ -126,7 +127,7 @@ export function DevicesListPage({
               { value: "REVOKED", label: "Révoqués" },
             ]}
           />
-          <button className="btn btn-primary h-11 rounded-2xl px-5" type="submit">
+          <button className={btnFilterSubmit} type="submit">
             Filtrer
           </button>
         </FilterBar>

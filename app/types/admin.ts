@@ -276,6 +276,7 @@ export interface BeneficiaryDetail extends Beneficiary {
   primaryHolderId?: string;
   primaryHolderName?: string;
   healthSummary?: BeneficiaryHealthSummary;
+  media?: MediaAsset[];
   activity: Array<{ id: string; label: string; createdAt: string }>;
   coverageHistory: Array<{
     id: string;
@@ -442,6 +443,8 @@ export interface Enrollment {
   requiredFields?: EnrollmentRequiredFieldsSnapshot;
   duplicateCandidates?: EnrollmentDuplicateCandidate[];
   healthSummary?: BeneficiaryHealthSummary;
+  media?: MediaAsset[];
+  beneficiaryId?: string;
 }
 
 export interface Verification {

@@ -12,6 +12,7 @@ import { FilterSelect } from "~/components/ui/FilterSelect";
 import { SearchField } from "~/components/ui/SearchField";
 import { PreparedMediaSlot } from "~/components/ui/MediaGallery";
 import { StatusBadge, VerificationOutcomeBadge } from "~/components/ui/StatusBadge";
+import { btnFilterSubmit } from "~/components/ui/uiClasses";
 import type {
   ListQuery,
   PaginatedResponse,
@@ -128,7 +129,7 @@ export function VerificationsPage({
               { value: "MANUAL", label: "Manuel" },
             ]}
           />
-          <button className="btn btn-primary h-11 rounded-2xl px-5" type="submit">
+          <button className={btnFilterSubmit} type="submit">
             Filtrer
           </button>
         </FilterBar>

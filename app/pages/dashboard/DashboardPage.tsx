@@ -18,6 +18,7 @@ import { AppCard } from "~/components/ui/AppCard";
 import { ChartCard } from "~/components/ui/ChartCard";
 import { EmptyState } from "~/components/ui/EmptyState";
 import { MetricCard } from "~/components/ui/MetricCard";
+import { softPanelShadow } from "~/components/ui/uiClasses";
 import { AlertSeverityBadge } from "~/components/ui/StatusBadge";
 import type { DashboardOverview, DashboardPeriod } from "~/types/admin";
 
@@ -63,7 +64,7 @@ export function DashboardPage({ overview }: DashboardPageProps) {
         title="Vue d'ensemble"
         description="Pilotage opérationnel des enrôlements, vérifications et alertes."
         actions={
-          <Form method="get" aria-label="Période du tableau de bord" className="join flex flex-wrap rounded-2xl bg-base-100 p-1 shadow-[0_8px_24px_rgb(11_27_51/0.05)]">
+          <Form method="get" aria-label="Période du tableau de bord" className={clsx("join flex flex-wrap rounded-2xl bg-base-100 p-1", softPanelShadow)}>
             {PERIODS.map((period) => (
               <button
                 key={period.value}

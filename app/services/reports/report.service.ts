@@ -1,4 +1,5 @@
-import type { ExportJob, ReportSummary } from "~/types/admin";
+import { apiRequest } from "~/server/api/client.server";
+import type { ExportJob, ExportJobStatus, ReportSummary } from "~/types/admin";
 
 export interface ReportKpi {
   id: string;
@@ -51,7 +52,17 @@ const reports: ReportSummary[] = [
   },
 ];
 
-const exportJobs = new Map<string, ExportJob>();
+type ApiExport = {
+  id: string;
+  type: string;
+  status: string;
+  createdAt: string;
+  storagePath?: string | null;
+  readyAt?: string | null;
+  expiresAt?: string | null;
+};
+
+type DownloadResponse = { url: string; expiresAt?: string | null };
 
 function report(
   id: string,
@@ -61,6 +72,34 @@ function report(
   highlights: ReportData["highlights"],
 ): ReportData {
   return { id, title, description, kpis, highlights, generatedAt: new Date().toISOString() };
+}
+
+function mapExportStatus(status: string): ExportJobStatus {
+  switch (status) {
+    case "READY":
+      return "READY";
+    case "PENDING":
+      return "QUEUED";
+    case "FAILED":
+    case "EXPIRED":
+      return "FAILED";
+    default:
+      return "RUNNING";
+  }
+}
+
+function toExportJob(row: ApiExport, downloadUrl?: string): ExportJob {
+  return {
+    id: row.id,
+    reportId: row.type,
+    status: mapExportStatus(row.status),
+    createdAt:
+      typeof row.createdAt === "string"
+        ? row.createdAt
+        : new Date(String(row.createdAt)).toISOString(),
+    downloadUrl,
+    error: row.status === "FAILED" || row.status === "EXPIRED" ? "Export indisponible." : undefined,
+  };
 }
 
 export async function listReports(): Promise<ReportSummary[]> {
@@ -144,22 +183,63 @@ export async function getFraudReport(): Promise<ReportData> {
   );
 }
 
-export async function createExportJob(reportId: string): Promise<ExportJob> {
+export async function createExportJob(
+  reportId: string,
+  accessToken: string,
+): Promise<ExportJob> {
   if (!reports.some((item) => item.id === reportId)) {
     throw new Error("Rapport inconnu.");
   }
-  const id = `EXP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-  const job: ExportJob = {
-    id,
-    reportId,
-    status: "READY",
-    createdAt: new Date().toISOString(),
-    downloadUrl: `/exports/${id}.csv`,
-  };
-  exportJobs.set(id, job);
-  return job;
+  const row = await apiRequest<ApiExport>("/admin/reports/exports", {
+    method: "POST",
+    accessToken,
+    body: { type: reportId },
+  });
+  let downloadUrl: string | undefined;
+  if (mapExportStatus(row.status) === "READY") {
+    try {
+      const download = await apiRequest<DownloadResponse>(
+        `/admin/reports/exports/${row.id}/download`,
+        { accessToken },
+      );
+      downloadUrl = download.url;
+    } catch {
+      downloadUrl = undefined;
+    }
+  }
+  return toExportJob(row, downloadUrl);
 }
 
-export async function getExportJob(id: string): Promise<ExportJob | undefined> {
-  return exportJobs.get(id);
+export async function getExportJob(
+  id: string,
+  accessToken: string,
+): Promise<ExportJob | undefined> {
+  try {
+    const row = await apiRequest<ApiExport>(`/admin/reports/exports/${id}`, {
+      accessToken,
+    });
+    let downloadUrl: string | undefined;
+    if (mapExportStatus(row.status) === "READY") {
+      try {
+        const download = await apiRequest<DownloadResponse>(
+          `/admin/reports/exports/${id}/download`,
+          { accessToken },
+        );
+        downloadUrl = download.url;
+      } catch {
+        downloadUrl = undefined;
+      }
+    }
+    return toExportJob(row, downloadUrl);
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "status" in error &&
+      error.status === 404
+    ) {
+      return undefined;
+    }
+    throw error;
+  }
 }

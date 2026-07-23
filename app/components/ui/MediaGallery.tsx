@@ -7,7 +7,9 @@ import {
   ImageIcon,
   LockKeyhole,
 } from "lucide-react";
+import { useState } from "react";
 
+import { MediaPreviewDialog } from "~/components/ui/MediaPreviewDialog";
 import type { MediaAsset, MediaAvailability, MediaKind } from "~/types/admin";
 
 const availabilityMeta: Record<
@@ -132,14 +134,25 @@ export function MediaGallery({
   assets: MediaAsset[];
   empty?: React.ReactNode;
 }) {
+  const [preview, setPreview] = useState<MediaAsset | undefined>();
+
   if (assets.length === 0) {
     return empty ?? <PreparedMediaSlot label="Médias du dossier" kind="OTHER" />;
   }
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {assets.map((asset) => <MediaTile key={asset.id} asset={asset} />)}
-    </div>
+    <>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {assets.map((asset) => (
+          <MediaTile key={asset.id} asset={asset} onPreview={setPreview} />
+        ))}
+      </div>
+      <MediaPreviewDialog
+        asset={preview}
+        open={Boolean(preview)}
+        onClose={() => setPreview(undefined)}
+      />
+    </>
   );
 }
 
@@ -163,4 +176,19 @@ export function DocumentRow({ asset }: { asset: MediaAsset }) {
       ) : null}
     </div>
   );
+}
+
+/** Split previewable assets from restricted face captures without URLs. */
+export function splitDossierMedia(media: MediaAsset[] | undefined): {
+  galleryAssets: MediaAsset[];
+  restrictedFace?: MediaAsset;
+} {
+  const assets = media ?? [];
+  const restrictedFace = assets.find(
+    (asset) => asset.kind === "FACE_CAPTURE" && !asset.previewUrl,
+  );
+  const galleryAssets = assets.filter(
+    (asset) => !(asset.kind === "FACE_CAPTURE" && !asset.previewUrl),
+  );
+  return { galleryAssets, restrictedFace };
 }
