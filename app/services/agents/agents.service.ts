@@ -5,6 +5,7 @@ import type {
   ListQuery,
   PaginatedResponse,
 } from "~/types/admin";
+import type { AgentActivityItem } from "./agent-activity";
 
 export type AgentInput = Pick<
   Agent,
@@ -133,9 +134,27 @@ export async function reactivateAgent(
   }
 }
 
+export async function listAgentActivity(
+  id: string,
+  accessToken: string,
+): Promise<AgentActivityItem[]> {
+  const res = await apiRequest<PaginatedResponse<AgentActivityItem>>(
+    `/admin/agents/${id}/activity?page=1&pageSize=20`,
+    { accessToken },
+  );
+  return res.items.map((item) => ({
+    ...item,
+    createdAt:
+      typeof item.createdAt === "string"
+        ? item.createdAt
+        : new Date(String(item.createdAt)).toISOString(),
+  }));
+}
+
 /** @deprecated mock reset — no-op after API wiring */
 export function resetAgentsForTests() {
   // no-op
 }
 
 export type { AgentStatus };
+export type { AgentActivityItem } from "./agent-activity";

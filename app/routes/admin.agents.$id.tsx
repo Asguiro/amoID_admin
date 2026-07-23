@@ -9,5 +9,10 @@ export function action({ request, params }: Route.ActionArgs) {
   return agentStatusAction(request, params.id);
 }
 export default function RouteComponent({ loaderData }: Route.ComponentProps) {
-  return <AgentDetailPage agent={loaderData.agent} />;
+  return (
+    <AgentDetailPage
+      agent={loaderData.agent}
+      activity={loaderData.activity}
+    />
+  );
 }

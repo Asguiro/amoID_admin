@@ -3,13 +3,16 @@ import { Form, Link, useNavigation } from "react-router";
 import { PageHeader } from "~/components/layouts/PageHeader";
 import { AppCard } from "~/components/ui/AppCard";
 import { FormField } from "~/components/ui/FormField";
-import type { Establishment } from "~/types/admin";
 import { CsrfField } from "~/components/security/CsrfProvider";
+import type { Establishment } from "~/types/admin";
+import type { RegionOption } from "~/services/establishments/establishments.service";
 
 export function EstablishmentFormPage({
   establishment,
+  regions,
 }: {
   establishment?: Establishment;
+  regions: RegionOption[];
 }) {
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
@@ -51,25 +54,34 @@ export function EstablishmentFormPage({
               <option value="ANTENNA">Antenne</option>
             </select>
           </FormField>
-          <FormField label="Statut">
-            <select
-              name="status"
-              defaultValue={establishment?.status ?? "ACTIVE"}
-              className="amo-select"
-            >
-              <option value="ACTIVE">Actif</option>
-              <option value="INACTIVE">Inactif</option>
-            </select>
-          </FormField>
-          <FormField label="Région">
-            <input
-              required
-              name="region"
-              defaultValue={establishment?.region}
-              className="amo-input"
-            />
-          </FormField>
-          <FormField label="Ville">
+          {editing ? (
+            <FormField label="Région">
+              <input
+                readOnly
+                value={establishment?.region ?? ""}
+                className="amo-input"
+              />
+            </FormField>
+          ) : (
+            <FormField label="Région">
+              <select
+                required
+                name="regionId"
+                defaultValue=""
+                className="amo-select"
+              >
+                <option value="" disabled>
+                  Sélectionner une région
+                </option>
+                {regions.map((region) => (
+                  <option key={region.id} value={region.id}>
+                    {region.name} ({region.code})
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          )}
+          <FormField label="Ville" className={editing ? "sm:col-span-2" : undefined}>
             <input
               required
               name="city"

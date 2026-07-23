@@ -5,6 +5,9 @@ import {
   createEstablishment,
   getEstablishment,
   listEstablishments,
+  listRegions,
+  reactivateEstablishment,
+  suspendEstablishment,
   updateEstablishment,
   type EstablishmentInput,
 } from "~/services/establishments/establishments.service";
@@ -23,9 +26,7 @@ function readInput(formData: FormData): EstablishmentInput {
   return {
     name: String(formData.get("name") ?? "").trim(),
     type: String(formData.get("type") ?? "HOSPITAL") as EstablishmentType,
-    region: String(formData.get("region") ?? "").trim(),
     city: String(formData.get("city") ?? "").trim(),
-    status: String(formData.get("status") ?? "ACTIVE") as EstablishmentInput["status"],
     regionId: String(formData.get("regionId") ?? "").trim() || undefined,
   };
 }
@@ -50,7 +51,8 @@ export async function loadEstablishmentDetail(request: Request, id: string) {
 
 export async function loadEstablishmentCreate(request: Request) {
   await requirePermission(request, permissions.establishmentCreate);
-  return {};
+  const accessToken = await requireAccessToken(request);
+  return { regions: await listRegions(accessToken) };
 }
 
 export async function loadEstablishmentEdit(request: Request, id: string) {
@@ -58,7 +60,10 @@ export async function loadEstablishmentEdit(request: Request, id: string) {
   const accessToken = await requireAccessToken(request);
   const establishment = await getEstablishment(id, accessToken);
   if (!establishment) notFound();
-  return { establishment };
+  return {
+    establishment,
+    regions: await listRegions(accessToken),
+  };
 }
 
 export async function createEstablishmentAction(request: Request) {
@@ -83,4 +88,21 @@ export async function updateEstablishmentAction(request: Request, id: string) {
   );
   if (!establishment) notFound();
   return redirect(`/establishments/${establishment.id}`);
+}
+
+export async function establishmentStatusAction(request: Request, id: string) {
+  await requireCsrfToken(request);
+  await requirePermission(request, permissions.establishmentUpdate);
+  const formData = await request.formData();
+  const intent = String(formData.get("intent") ?? "");
+  const reason = String(formData.get("reason") ?? "").trim();
+  const accessToken = await requireAccessToken(request);
+  if (intent === "suspend") {
+    if (!(await suspendEstablishment(id, reason, accessToken))) notFound();
+  } else if (intent === "reactivate") {
+    if (!(await reactivateEstablishment(id, reason, accessToken))) notFound();
+  } else {
+    throw new Response("Action invalide", { status: 400 });
+  }
+  return redirect(`/establishments/${id}`);
 }

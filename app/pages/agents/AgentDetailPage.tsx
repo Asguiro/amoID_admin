@@ -10,28 +10,28 @@ import { AgentStatusBadge } from "~/components/ui/StatusBadge";
 import type { Agent } from "~/types/admin";
 import { ADMIN_ROLE_LABELS } from "~/types/admin";
 import { CsrfField } from "~/components/security/CsrfProvider";
+import {
+  labelAgentActivity,
+  type AgentActivityItem,
+} from "~/services/agents/agent-activity";
 
-export function AgentDetailPage({ agent }: { agent: Agent }) {
+export function AgentDetailPage({
+  agent,
+  activity,
+}: {
+  agent: Agent;
+  activity: AgentActivityItem[];
+}) {
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
-  const activity = [
-    ...(agent.lastActiveAt
-      ? [
-          {
-            id: "act-1",
-            label: "Dernière activité enregistrée",
-            actor: agent.displayName,
-            createdAt: agent.lastActiveAt,
-          },
-        ]
-      : []),
-    {
-      id: "act-2",
-      label: "Compte agent créé",
-      actor: "Administration AMO ID",
-      createdAt: agent.createdAt,
-    },
-  ];
+  const timeline = activity.map((item) => ({
+    id: item.id,
+    label: item.reason
+      ? `${labelAgentActivity(item.action)} — ${item.reason}`
+      : labelAgentActivity(item.action),
+    actor: item.actorRole,
+    createdAt: item.createdAt,
+  }));
 
   return (
     <>
@@ -62,7 +62,7 @@ export function AgentDetailPage({ agent }: { agent: Agent }) {
       <DetailPageLayout
         aside={
           <DetailSectionCard title="Activité récente">
-            <AuditTimeline items={activity} />
+            <AuditTimeline items={timeline} />
           </DetailSectionCard>
         }
       >

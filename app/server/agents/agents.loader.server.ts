@@ -4,6 +4,7 @@ import { permissions } from "~/config/permissions";
 import {
   createAgent,
   getAgent,
+  listAgentActivity,
   listAgents,
   reactivateAgent,
   suspendAgent,
@@ -56,7 +57,8 @@ export async function loadAgentDetail(request: Request, id: string) {
   const accessToken = await requireAccessToken(request);
   const agent = await getAgent(id, accessToken);
   if (!agent) notFound();
-  return { agent };
+  const activity = await listAgentActivity(id, accessToken);
+  return { agent, activity };
 }
 
 export async function loadAgentCreate(request: Request) {

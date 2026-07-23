@@ -1,12 +1,27 @@
 import { apiRequest } from "~/server/api/client.server";
 import type { Establishment, ListQuery, PaginatedResponse } from "~/types/admin";
 
-export type EstablishmentInput = Pick<
-  Establishment,
-  "name" | "type" | "region" | "city" | "status"
-> & {
+export type RegionOption = {
+  id: string;
+  code: string;
+  name: string;
+};
+
+export type EstablishmentInput = {
+  name: string;
+  type: Establishment["type"];
+  city: string;
   regionId?: string;
 };
+
+export async function listRegions(
+  accessToken: string,
+): Promise<RegionOption[]> {
+  const res = await apiRequest<{ items: RegionOption[] }>("/admin/regions", {
+    accessToken,
+  });
+  return res.items;
+}
 
 function buildQuery(query: ListQuery) {
   const params = new URLSearchParams({
@@ -80,6 +95,50 @@ export async function updateEstablishment(
         city: input.city,
       },
     });
+  } catch (error) {
+    if (error && typeof error === "object" && "status" in error && error.status === 404) {
+      return undefined;
+    }
+    throw error;
+  }
+}
+
+export async function suspendEstablishment(
+  id: string,
+  reason: string,
+  accessToken: string,
+): Promise<Establishment | undefined> {
+  try {
+    return await apiRequest<Establishment>(
+      `/admin/establishments/${id}/suspend`,
+      {
+        method: "POST",
+        accessToken,
+        body: { reason },
+      },
+    );
+  } catch (error) {
+    if (error && typeof error === "object" && "status" in error && error.status === 404) {
+      return undefined;
+    }
+    throw error;
+  }
+}
+
+export async function reactivateEstablishment(
+  id: string,
+  reason: string,
+  accessToken: string,
+): Promise<Establishment | undefined> {
+  try {
+    return await apiRequest<Establishment>(
+      `/admin/establishments/${id}/reactivate`,
+      {
+        method: "POST",
+        accessToken,
+        body: { reason },
+      },
+    );
   } catch (error) {
     if (error && typeof error === "object" && "status" in error && error.status === 404) {
       return undefined;

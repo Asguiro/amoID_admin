@@ -78,37 +78,6 @@ export function getServerEnv(): ServerEnv {
     APP_ENV: process.env.APP_ENV ?? process.env.NODE_ENV,
   });
 
-  // #region agent log
-  fetch("http://127.0.0.1:7626/ingest/52f7afb0-b011-458d-8aeb-f7e2b7da4c3a", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Debug-Session-Id": "813ef0",
-    },
-    body: JSON.stringify({
-      sessionId: "813ef0",
-      runId: "post-fix",
-      hypothesisId: "A",
-      location: "env.server.ts:getServerEnv",
-      message: "env resolve",
-      data: {
-        hasApiUrlEnv: Boolean(process.env.API_URL),
-        appEnvInput: process.env.APP_ENV ?? process.env.NODE_ENV ?? null,
-        vercel: process.env.VERCEL ?? null,
-        deployedRuntime: isDeployedRuntime(),
-        success: parsed.success,
-        resolvedHost: parsed.success
-          ? new URL(parsed.data.API_URL).hostname
-          : null,
-        issues: parsed.success
-          ? null
-          : parsed.error.issues.map((i) => i.message),
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
-
   if (!parsed.success) {
     throw new Error(
       `Invalid server environment: ${parsed.error.issues.map((i) => i.message).join(", ")}`,
