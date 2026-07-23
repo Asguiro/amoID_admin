@@ -18,7 +18,8 @@ export default function AlertDetailRoute({
     <AlertDetailPage
       alert={loaderData.alert}
       userPermissions={loaderData.permissions}
-      actionError={actionData?.ok === false ? actionData.error : undefined}
+      assignableAgents={loaderData.assignableAgents}
+      actionData={actionData}
     />
   );
 }

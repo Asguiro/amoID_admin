@@ -41,6 +41,7 @@ type ApiAlert = {
   severity: AlertItem["severity"];
   status: AlertStatus;
   establishmentName?: string;
+  assigneeId?: string;
   assigneeName?: string;
   assignee?: string;
   comments?: unknown;
@@ -96,6 +97,7 @@ function mapAlert(a: ApiAlert): AlertDetail {
     title: a.title,
     severity: a.severity,
     status: a.status,
+    assigneeId: a.assigneeId,
     assignee: a.assigneeName ?? a.assignee,
     establishmentName: a.establishmentName,
     createdAt: a.createdAt,
@@ -158,14 +160,14 @@ export async function getAlertDetail(
 
 export async function assignAlert(
   id: string,
-  assignee: string,
+  assigneeId: string,
   accessToken: string,
 ): Promise<AlertDetail> {
-  if (!assignee.trim()) throw new Error("Le nom de l’analyste est obligatoire.");
+  if (!assigneeId.trim()) throw new Error("Sélectionnez un agent à affecter.");
   const item = await apiRequest<ApiAlert>(`/admin/alerts/${id}/assign`, {
     method: "POST",
     accessToken,
-    body: { assigneeId: assignee.trim() },
+    body: { assigneeId: assigneeId.trim() },
   });
   return mapAlert(item);
 }
@@ -199,5 +201,14 @@ export async function updateAlertStatus(
     accessToken,
     body: { status },
   });
+  try {
+    await apiRequest<ApiAlert>(`/admin/alerts/${id}/comment`, {
+      method: "POST",
+      accessToken,
+      body: { message: `Décision → ${status} : ${reason.trim()}` },
+    });
+  } catch {
+    // Le statut a déjà été appliqué ; le commentaire est best-effort.
+  }
   return mapAlert(item);
 }

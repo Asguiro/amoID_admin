@@ -7,7 +7,7 @@ import { DataTable } from "~/components/ui/DataTable";
 import { DetailField, DetailGrid } from "~/components/ui/DetailField";
 import { DetailSectionCard } from "~/components/ui/DetailSectionCard";
 import { FilterBar } from "~/components/ui/FilterBar";
-import { FormField } from "~/components/ui/FormField";
+import { ReasonComposer } from "~/components/ui/ReasonComposer";
 import { SearchField } from "~/components/ui/SearchField";
 import {
   MediaGallery,
@@ -16,8 +16,14 @@ import {
 } from "~/components/ui/MediaGallery";
 import { EnrollmentStatusBadge, StatusBadge } from "~/components/ui/StatusBadge";
 import { btnFilterSubmit, btnHeaderAction } from "~/components/ui/uiClasses";
+import {
+  ENROLLMENT_MANUAL_REVIEW_REASONS,
+  ENROLLMENT_REJECT_REASONS,
+  ENROLLMENT_RETURN_REASONS,
+} from "~/config/reason-options";
 import type { Enrollment, ListQuery, PaginatedResponse } from "~/types/admin";
 import { CsrfField } from "~/components/security/CsrfProvider";
+import { enrollmentActionFlags } from "~/utils/enrollment-actions";
 import { buildListHref, countActiveListFilters } from "~/utils/search-params";
 
 const columns: ColumnDef<Enrollment>[] = [
@@ -178,21 +184,31 @@ function EnrollmentMediaSection({ enrollment }: { enrollment: Enrollment }) {
 }
 
 export function EnrollmentDetailPage({
-  enrollment,
-  canValidate,
-  canReturn,
-  canReject,
+  enrollment: initialEnrollment,
+  permissions: userPermissions,
   actionData,
 }: {
   enrollment: Enrollment;
-  canValidate: boolean;
-  canReturn: boolean;
-  canReject: boolean;
-  actionData?: { error?: string; success?: string };
+  permissions: string[];
+  canValidate?: boolean;
+  canReturn?: boolean;
+  canReject?: boolean;
+  actionData?: {
+    error?: string;
+    success?: string;
+    enrollment?: Enrollment;
+  };
 }) {
   const navigation = useNavigation();
   const busy = navigation.state === "submitting";
+  const enrollment = actionData?.enrollment ?? initialEnrollment;
+  const { canValidate, canReturn, canReject } = enrollmentActionFlags(
+    enrollment,
+    userPermissions,
+  );
   const canDecide = canValidate || canReturn || canReject;
+  const terminal =
+    enrollment.status === "VALIDATED" || enrollment.status === "REJECTED";
 
   return (
     <>
@@ -250,6 +266,11 @@ export function EnrollmentDetailPage({
               <DetailField label="Date" className="sm:col-span-2">
                 {new Date(enrollment.submittedAt).toLocaleString("fr-FR")}
               </DetailField>
+              {enrollment.returnReason ? (
+                <DetailField label="Motif enregistré" className="sm:col-span-2">
+                  {enrollment.returnReason}
+                </DetailField>
+              ) : null}
             </DetailGrid>
           </AppCard>
 
@@ -366,6 +387,22 @@ export function EnrollmentDetailPage({
           <h2 className="amo-display mb-5 text-lg font-semibold text-secondary">
             Décision
           </h2>
+
+          {terminal ? (
+            <p className="text-sm text-base-content/70">
+              Ce dossier est déjà{" "}
+              {enrollment.status === "VALIDATED" ? "validé" : "rejeté"}. Aucune
+              nouvelle décision n’est possible.
+            </p>
+          ) : null}
+
+          {!terminal && enrollment.status === "RETURNED" && !canReject ? (
+            <p className="mb-4 text-sm text-base-content/70">
+              Dossier retourné pour correction — en attente d’une nouvelle
+              soumission.
+            </p>
+          ) : null}
+
           {canValidate ? (
             <Form method="post" className="mb-5">
               <CsrfField />
@@ -379,49 +416,77 @@ export function EnrollmentDetailPage({
               </button>
             </Form>
           ) : null}
-          {canReturn || canReject ? (
-            <Form method="post" className="space-y-4">
+
+          {canReturn ? (
+            <Form
+              method="post"
+              className="mb-5 space-y-4 border-t border-base-200 pt-5"
+            >
               <CsrfField />
-              <FormField label="Commentaire / motif obligatoire">
-                <textarea name="comment" required className="amo-textarea" />
-              </FormField>
-              <div className="flex flex-col gap-2">
-                {canReturn ? (
-                  <>
-                    <button
-                      disabled={busy}
-                      name="intent"
-                      value="return"
-                      className="btn btn-warning h-11 w-full rounded-xl"
-                    >
-                      Retourner pour correction
-                    </button>
-                    <button
-                      disabled={busy}
-                      name="intent"
-                      value="manual-review"
-                      className="btn btn-outline h-11 w-full rounded-xl"
-                    >
-                      Analyse manuelle
-                    </button>
-                  </>
-                ) : null}
-                {canReject ? (
-                  <button
-                    disabled={busy}
-                    name="intent"
-                    value="reject"
-                    className="btn btn-error h-11 w-full rounded-xl"
-                  >
-                    Rejeter l’enrôlement
-                  </button>
-                ) : null}
-              </div>
+              <ReasonComposer
+                options={ENROLLMENT_RETURN_REASONS}
+                label="Motif de retour"
+                disabled={busy}
+              />
+              <button
+                disabled={busy}
+                name="intent"
+                value="return"
+                className="btn btn-warning h-11 w-full rounded-xl"
+              >
+                Retourner pour correction
+              </button>
             </Form>
           ) : null}
-          {!canDecide ? (
+
+          {canReturn ? (
+            <Form
+              method="post"
+              className="mb-5 space-y-4 border-t border-base-200 pt-5"
+            >
+              <CsrfField />
+              <ReasonComposer
+                options={ENROLLMENT_MANUAL_REVIEW_REASONS}
+                label="Motif d’analyse manuelle"
+                disabled={busy}
+              />
+              <button
+                disabled={busy}
+                name="intent"
+                value="manual-review"
+                className="btn btn-outline h-11 w-full rounded-xl"
+              >
+                Demander une analyse manuelle
+              </button>
+            </Form>
+          ) : null}
+
+          {canReject ? (
+            <Form
+              method="post"
+              className="space-y-4 border-t border-base-200 pt-5"
+            >
+              <CsrfField />
+              <ReasonComposer
+                options={ENROLLMENT_REJECT_REASONS}
+                label="Motif de rejet"
+                disabled={busy}
+              />
+              <button
+                disabled={busy}
+                name="intent"
+                value="reject"
+                className="btn btn-error h-11 w-full rounded-xl"
+              >
+                Rejeter l’enrôlement
+              </button>
+            </Form>
+          ) : null}
+
+          {!canDecide && !terminal ? (
             <p className="text-sm text-base-content/60">
-              Vous ne disposez pas des permissions de décision.
+              Aucune action disponible pour ce statut, ou permissions
+              insuffisantes.
             </p>
           ) : null}
         </AppCard>
