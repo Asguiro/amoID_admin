@@ -50,7 +50,7 @@ export function DeviceDetailPage({
             {device.establishmentName}
           </DetailField>
           <DetailField label="Dernière activité">
-            {date(device.lastSeenAt)}
+            {device.lastSeenAt ? date(device.lastSeenAt) : "—"}
           </DetailField>
           <DetailField label="Enrôlé le">{date(device.enrolledAt)}</DetailField>
           <DetailField label="Sync en attente">

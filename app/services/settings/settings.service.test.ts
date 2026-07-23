@@ -1,17 +1,21 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 
 import { permissions } from "~/config/permissions";
-import {
-  getDevice,
-  resetDevicesForTests,
-  trustDevice,
-} from "~/services/devices/devices.service";
+import { trustDevice } from "~/services/devices/devices.service";
 import {
   getAppSettings,
   listFraudRules,
   updateAppSettings,
   updateFraudRule,
 } from "~/services/settings/settings.service";
+
+vi.mock("~/server/api/client.server", () => ({
+  apiRequest: vi.fn(),
+}));
+
+import { apiRequest } from "~/server/api/client.server";
+
+const apiRequestMock = vi.mocked(apiRequest);
 
 describe("new permissions", () => {
   it("exposes enrollment.reject and device.trust", () => {
@@ -22,16 +26,37 @@ describe("new permissions", () => {
 });
 
 describe("devices.trust", () => {
-  beforeEach(() => resetDevicesForTests());
+  beforeEach(() => {
+    apiRequestMock.mockReset();
+  });
 
-  it("approuve un appareil en attente", async () => {
-    const result = await trustDevice("dev-003", "Contrôle terrain OK");
+  it("appelle restore avec le motif", async () => {
+    apiRequestMock.mockResolvedValueOnce({
+      id: "dev-003",
+      label: "iPhone",
+      status: "TRUSTED",
+      agentId: "agt-1",
+      agentName: "Agent",
+      establishmentName: "CSRef",
+      platform: "iOS",
+      lastSeenAt: null,
+      enrolledAt: new Date().toISOString(),
+    });
+
+    const result = await trustDevice("dev-003", "Contrôle terrain OK", "token");
     expect(result?.status).toBe("TRUSTED");
-    expect((await getDevice("dev-003"))?.status).toBe("TRUSTED");
+    expect(apiRequestMock).toHaveBeenCalledWith(
+      "/admin/devices/dev-003/restore",
+      expect.objectContaining({
+        method: "POST",
+        accessToken: "token",
+        body: { reason: "Contrôle terrain OK" },
+      }),
+    );
   });
 
   it("refuse sans motif", async () => {
-    await expect(trustDevice("dev-011", "  ")).rejects.toThrow(
+    await expect(trustDevice("dev-011", "  ", "token")).rejects.toThrow(
       "Le motif d’approbation est obligatoire.",
     );
   });

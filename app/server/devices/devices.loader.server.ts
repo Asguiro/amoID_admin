@@ -12,6 +12,7 @@ import { parseListSearchParams } from "~/utils/search-params";
 
 import { requirePermission } from "../auth/require-permission.server";
 import { requireCsrfToken } from "../security/csrf.server";
+import { requireAccessToken } from "../session.server";
 
 function notFound(): never {
   throw new Response("Appareil introuvable", { status: 404 });
@@ -19,17 +20,19 @@ function notFound(): never {
 
 export async function loadDevicesList(request: Request) {
   await requirePermission(request, permissions.deviceRead);
+  const accessToken = await requireAccessToken(request);
   const query = parseListSearchParams(new URL(request.url).searchParams);
   const [devices, pendingSync] = await Promise.all([
-    listDevices(query),
-    listPendingSyncDevices(),
+    listDevices(query, accessToken),
+    listPendingSyncDevices(accessToken),
   ]);
   return { devices, query, pendingSync };
 }
 
 export async function loadDeviceDetail(request: Request, id: string) {
   const user = await requirePermission(request, permissions.deviceRead);
-  const device = await getDevice(id);
+  const accessToken = await requireAccessToken(request);
+  const device = await getDevice(id, accessToken);
   if (!device) notFound();
   return {
     device,
@@ -43,11 +46,12 @@ export async function mutateDeviceAction(request: Request, id: string) {
   const formData = await request.formData();
   const intent = String(formData.get("intent") ?? "");
   const reason = String(formData.get("reason") ?? "").trim();
+  const accessToken = await requireAccessToken(request);
 
   if (intent === "trust") {
     await requirePermission(request, permissions.deviceTrust);
     try {
-      const device = await trustDevice(id, reason);
+      const device = await trustDevice(id, reason, accessToken);
       if (!device) notFound();
     } catch (error) {
       return {
@@ -60,7 +64,7 @@ export async function mutateDeviceAction(request: Request, id: string) {
   if (intent === "revoke") {
     await requirePermission(request, permissions.deviceRevoke);
     try {
-      const device = await revokeDevice(id, reason);
+      const device = await revokeDevice(id, reason, accessToken);
       if (!device) notFound();
     } catch (error) {
       return {

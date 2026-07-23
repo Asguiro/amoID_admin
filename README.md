@@ -24,8 +24,8 @@ Application : `http://localhost:5173`
 
 | E-mail | Mot de passe | Rôle |
 |---|---|---|
-| `admin@amo.ml` | `Admin123!` | ADMIN_NATIONAL |
-| `superviseur@amo.ml` | `Super123!` | SUPERVISEUR_REGIONAL |
+| `admin@amo-id.ml` | `Demo@2026!` | ADMIN_CENTRAL |
+| `regional@amo-id.ml` | `Demo@2026!` | REGIONAL_SUPERVISOR |
 
 ## Architecture
 
@@ -59,7 +59,7 @@ Règles :
 
 Voir `.env.example` :
 
-- `API_URL` — base URL API (server-only)
+- `API_URL` — base URL API Render (`https://amo-id-api.onrender.com`)
 - `SESSION_SECRET` — secret cookie session
 - `APP_ENV` — `development` \| `test` \| `production`
 

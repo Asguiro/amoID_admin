@@ -47,6 +47,19 @@ export function AgentFormPage({
               className="amo-input"
             />
           </FormField>
+          {!agent ? (
+            <FormField label="Mot de passe initial">
+              <input
+                required
+                type="password"
+                name="password"
+                minLength={8}
+                defaultValue="Demo@2026!"
+                className="amo-input"
+                autoComplete="new-password"
+              />
+            </FormField>
+          ) : null}
           <FormField label="Rôle">
             <select
               required

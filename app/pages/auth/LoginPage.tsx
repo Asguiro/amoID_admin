@@ -114,8 +114,8 @@ export function LoginPage({ error, redirectTo, demoAccounts }: LoginPageProps) {
                   required
                   autoComplete="username"
                   className="amo-input"
-                  defaultValue="admin@amo.ml"
-                  placeholder="prenom.nom@amo.ml"
+                  defaultValue="admin@amo-id.ml"
+                  placeholder="prenom.nom@amo-id.ml"
                 />
               </label>
 
@@ -129,7 +129,7 @@ export function LoginPage({ error, redirectTo, demoAccounts }: LoginPageProps) {
                   required
                   autoComplete="current-password"
                   className="amo-input"
-                  defaultValue="Admin123!"
+                  defaultValue="Demo@2026!"
                   placeholder="••••••••"
                 />
               </label>

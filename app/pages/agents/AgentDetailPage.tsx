@@ -15,12 +15,16 @@ export function AgentDetailPage({ agent }: { agent: Agent }) {
   const navigation = useNavigation();
   const busy = navigation.state !== "idle";
   const activity = [
-    {
-      id: "act-1",
-      label: "Dernière activité enregistrée",
-      actor: agent.displayName,
-      createdAt: agent.lastActiveAt,
-    },
+    ...(agent.lastActiveAt
+      ? [
+          {
+            id: "act-1",
+            label: "Dernière activité enregistrée",
+            actor: agent.displayName,
+            createdAt: agent.lastActiveAt,
+          },
+        ]
+      : []),
     {
       id: "act-2",
       label: "Compte agent créé",

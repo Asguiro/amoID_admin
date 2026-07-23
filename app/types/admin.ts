@@ -219,7 +219,7 @@ export interface Agent {
   establishmentId: string;
   establishmentName: string;
   region: string;
-  lastActiveAt: string;
+  lastActiveAt: string | null;
   createdAt: string;
 }
 
@@ -231,7 +231,7 @@ export interface Device {
   agentName: string;
   establishmentName: string;
   platform: string;
-  lastSeenAt: string;
+  lastSeenAt: string | null;
   enrolledAt: string;
   pendingSyncCount?: number;
   lastSyncAt?: string;

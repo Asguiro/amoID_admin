@@ -1,73 +1,24 @@
-import { adminRoles, permissions } from "~/config/permissions";
+import { apiRequest } from "~/server/api/client.server";
+import { ApiClientError } from "~/server/api/errors.server";
 import type { AdminSessionUser } from "~/types/admin";
 
-const DEMO_USERS: Record<string, AdminSessionUser & { password: string }> = {
-  "admin@amo.ml": {
-    id: "usr_admin_001",
-    displayName: "Aminata Diallo",
-    email: "admin@amo.ml",
-    role: adminRoles.ADMIN_CENTRAL,
-    password: "Admin123!",
-    permissions: Object.values(permissions),
+/** Comptes seed API (dev) — alignés sur amo-id_api/prisma/seed.ts */
+const DEMO_ACCOUNTS: Array<{
+  email: string;
+  role: string;
+  displayName: string;
+}> = [
+  {
+    email: "admin@amo-id.ml",
+    role: "ADMIN_CENTRAL",
+    displayName: "Admin Central",
   },
-  "superviseur@amo.ml": {
-    id: "usr_sup_001",
-    displayName: "Ibrahim Keita",
-    email: "superviseur@amo.ml",
-    role: adminRoles.REGIONAL_SUPERVISOR,
-    password: "Super123!",
-    regionId: "reg_bamako",
-    permissions: [
-      permissions.dashboardReadRegion,
-      permissions.beneficiaryReadBasic,
-      permissions.beneficiaryReadSensitive,
-      permissions.beneficiaryReadHealth,
-      permissions.enrollmentRead,
-      permissions.enrollmentValidate,
-      permissions.enrollmentReturnForCorrection,
-      permissions.enrollmentReject,
-      permissions.agentRead,
-      permissions.agentUpdate,
-      permissions.agentSuspend,
-      permissions.agentReactivate,
-      permissions.establishmentRead,
-      permissions.establishmentUpdate,
-      permissions.deviceRead,
-      permissions.deviceTrust,
-      permissions.deviceRevoke,
-      permissions.verificationRead,
-      permissions.temporaryQrRead,
-      permissions.temporaryQrRevoke,
-      permissions.alertRead,
-      permissions.alertAssign,
-      permissions.alertInvestigate,
-      permissions.reportRead,
-      permissions.auditRead,
-      permissions.settingsRead,
-    ],
+  {
+    email: "regional@amo-id.ml",
+    role: "REGIONAL_SUPERVISOR",
+    displayName: "Superviseur Régional",
   },
-  "auditeur@amo.ml": {
-    id: "usr_aud_001",
-    displayName: "Fatoumata Sangaré",
-    email: "auditeur@amo.ml",
-    role: adminRoles.AUDITOR,
-    password: "Audit123!",
-    permissions: [
-      permissions.dashboardReadGlobal,
-      permissions.beneficiaryReadBasic,
-      permissions.enrollmentRead,
-      permissions.agentRead,
-      permissions.establishmentRead,
-      permissions.deviceRead,
-      permissions.verificationRead,
-      permissions.temporaryQrRead,
-      permissions.alertRead,
-      permissions.reportRead,
-      permissions.reportExport,
-      permissions.auditRead,
-    ],
-  },
-};
+];
 
 export interface LoginCredentials {
   email: string;
@@ -77,6 +28,8 @@ export interface LoginCredentials {
 export interface LoginResult {
   ok: true;
   user: AdminSessionUser;
+  accessToken: string;
+  refreshToken: string;
 }
 
 export interface LoginFailure {
@@ -84,6 +37,13 @@ export interface LoginFailure {
   code: "INVALID_CREDENTIALS" | "VALIDATION_ERROR";
   message: string;
 }
+
+type LoginApiResponse = {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: string;
+  user: AdminSessionUser;
+};
 
 export async function authenticateUser(
   credentials: LoginCredentials,
@@ -99,23 +59,30 @@ export async function authenticateUser(
     };
   }
 
-  const match = DEMO_USERS[email];
-  if (!match || match.password !== password) {
-    return {
-      ok: false,
-      code: "INVALID_CREDENTIALS",
-      message: "Identifiants incorrects.",
-    };
-  }
+  try {
+    const data = await apiRequest<LoginApiResponse>("/admin/auth/login", {
+      method: "POST",
+      body: { email, password },
+    });
 
-  const { password: _password, ...user } = match;
-  return { ok: true, user };
+    return {
+      ok: true,
+      user: data.user,
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken,
+    };
+  } catch (error) {
+    if (error instanceof ApiClientError && (error.status === 401 || error.status === 403)) {
+      return {
+        ok: false,
+        code: "INVALID_CREDENTIALS",
+        message: error.message || "Identifiants incorrects.",
+      };
+    }
+    throw error;
+  }
 }
 
 export function getDemoAccounts() {
-  return Object.values(DEMO_USERS).map((user) => ({
-    email: user.email,
-    role: user.role,
-    displayName: user.displayName,
-  }));
+  return DEMO_ACCOUNTS;
 }

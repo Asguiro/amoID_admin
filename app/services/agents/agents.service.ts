@@ -1,72 +1,141 @@
-import type { Agent, AgentStatus, ListQuery, PaginatedResponse } from "~/types/admin";
-
-import { daysAgo, filterByQuery, filterByStatus, toPaginated } from "../_shared/mock.utils";
+import { apiRequest } from "~/server/api/client.server";
+import type {
+  Agent,
+  AgentStatus,
+  ListQuery,
+  PaginatedResponse,
+} from "~/types/admin";
 
 export type AgentInput = Pick<
   Agent,
-  "displayName" | "email" | "role" | "status" | "establishmentId" | "establishmentName" | "region"
->;
+  | "displayName"
+  | "email"
+  | "role"
+  | "status"
+  | "establishmentId"
+  | "establishmentName"
+  | "region"
+> & {
+  password?: string;
+};
 
-const seed: Array<Omit<Agent, "lastActiveAt" | "createdAt"> & { lastSeen: number; created: number }> = [
-  { id: "agt-001", displayName: "Aïssata Traoré", email: "aissata@amo.ml", role: "ENROLLMENT_AGENT", status: "ACTIVE", establishmentId: "est-001", establishmentName: "Hôpital du Point G", region: "Bamako", lastSeen: 0, created: 180 },
-  { id: "agt-002", displayName: "Moussa Diarra", email: "moussa@amo.ml", role: "ESTABLISHMENT_SUPERVISOR", status: "ACTIVE", establishmentId: "est-001", establishmentName: "Hôpital du Point G", region: "Bamako", lastSeen: 1, created: 220 },
-  { id: "agt-003", displayName: "Fatoumata Koné", email: "fatoumata@amo.ml", role: "CARE_POINT_AGENT", status: "PENDING", establishmentId: "est-002", establishmentName: "CHU Gabriel Touré", region: "Bamako", lastSeen: 3, created: 5 },
-  { id: "agt-004", displayName: "Oumar Coulibaly", email: "oumar@amo.ml", role: "ENROLLMENT_AGENT", status: "ACTIVE", establishmentId: "est-002", establishmentName: "CHU Gabriel Touré", region: "Bamako", lastSeen: 2, created: 90 },
-  { id: "agt-005", displayName: "Mariam Diallo", email: "mariam@amo.ml", role: "CARE_POINT_AGENT", status: "SUSPENDED", establishmentId: "est-003", establishmentName: "Clinique Pasteur", region: "Bamako", lastSeen: 30, created: 160 },
-  { id: "agt-006", displayName: "Ibrahim Keïta", email: "ibrahim@amo.ml", role: "CARE_POINT_AGENT", status: "ACTIVE", establishmentId: "est-004", establishmentName: "Pharmacie du Fleuve", region: "Kayes", lastSeen: 1, created: 120 },
-  { id: "agt-007", displayName: "Nana Sangaré", email: "nana@amo.ml", role: "REGIONAL_SUPERVISOR", status: "ACTIVE", establishmentId: "est-005", establishmentName: "Antenne AMO Ségou", region: "Ségou", lastSeen: 0, created: 200 },
-  { id: "agt-008", displayName: "Bakary Sidibé", email: "bakary@amo.ml", role: "ENROLLMENT_AGENT", status: "ARCHIVED", establishmentId: "est-006", establishmentName: "Centre médical Sikasso", region: "Sikasso", lastSeen: 80, created: 300 },
-  { id: "agt-009", displayName: "Aminata Touré", email: "aminata@amo.ml", role: "CARE_POINT_AGENT", status: "ACTIVE", establishmentId: "est-007", establishmentName: "Hôpital régional Mopti", region: "Mopti", lastSeen: 4, created: 60 },
-  { id: "agt-010", displayName: "Modibo Maïga", email: "modibo@amo.ml", role: "ENROLLMENT_AGENT", status: "ACTIVE", establishmentId: "est-003", establishmentName: "Clinique Pasteur", region: "Bamako", lastSeen: 1, created: 70 },
-  { id: "agt-011", displayName: "Kadidia Dembélé", email: "kadidia@amo.ml", role: "CARE_POINT_AGENT", status: "PENDING", establishmentId: "est-009", establishmentName: "Pharmacie Kénédougou", region: "Sikasso", lastSeen: 7, created: 8 },
-];
+function buildQuery(query: ListQuery & { establishmentId?: string }) {
+  const params = new URLSearchParams({
+    page: String(query.page),
+    pageSize: String(query.pageSize),
+  });
+  if (query.q) params.set("q", query.q);
+  if (query.status) params.set("status", query.status);
+  if (query.establishmentId) params.set("establishmentId", query.establishmentId);
+  return params;
+}
 
-let agents: Agent[] = seed.map(({ lastSeen, created, ...agent }) => ({
-  ...agent,
-  lastActiveAt: daysAgo(lastSeen),
-  createdAt: daysAgo(created),
-}));
-
-export async function listAgents(query: ListQuery & { establishmentId?: string }): Promise<PaginatedResponse<Agent>> {
-  let filtered = filterByStatus(
-    filterByQuery(agents, query.q, [(item) => item.displayName, (item) => item.email, (item) => item.establishmentName]),
-    query.status,
+export async function listAgents(
+  query: ListQuery & { establishmentId?: string },
+  accessToken: string,
+): Promise<PaginatedResponse<Agent>> {
+  return apiRequest<PaginatedResponse<Agent>>(
+    `/admin/agents?${buildQuery(query)}`,
+    { accessToken },
   );
-  if (query.establishmentId) filtered = filtered.filter((item) => item.establishmentId === query.establishmentId);
-  return toPaginated(filtered, query.page, query.pageSize);
 }
 
-export async function getAgent(id: string): Promise<Agent | undefined> {
-  return agents.find((item) => item.id === id);
+export async function getAgent(
+  id: string,
+  accessToken: string,
+): Promise<Agent | undefined> {
+  try {
+    return await apiRequest<Agent>(`/admin/agents/${id}`, { accessToken });
+  } catch (error) {
+    if (error && typeof error === "object" && "status" in error && error.status === 404) {
+      return undefined;
+    }
+    throw error;
+  }
 }
 
-export async function createAgent(input: AgentInput): Promise<Agent> {
-  const now = new Date().toISOString();
-  const agent: Agent = { ...input, id: `agt-${crypto.randomUUID()}`, lastActiveAt: now, createdAt: now };
-  agents = [agent, ...agents];
-  return agent;
+export async function createAgent(
+  input: AgentInput,
+  accessToken: string,
+): Promise<Agent> {
+  const password = input.password?.trim() || "Demo@2026!";
+  return apiRequest<Agent>("/admin/agents", {
+    method: "POST",
+    accessToken,
+    body: {
+      email: input.email,
+      displayName: input.displayName,
+      password,
+      role: input.role,
+      establishmentId: input.establishmentId,
+    },
+  });
 }
 
-export async function updateAgent(id: string, input: AgentInput): Promise<Agent | undefined> {
-  const current = await getAgent(id);
-  if (!current) return undefined;
-  const updated = { ...current, ...input };
-  agents = agents.map((item) => (item.id === id ? updated : item));
-  return updated;
+export async function updateAgent(
+  id: string,
+  input: AgentInput,
+  accessToken: string,
+): Promise<Agent | undefined> {
+  try {
+    return await apiRequest<Agent>(`/admin/agents/${id}`, {
+      method: "PATCH",
+      accessToken,
+      body: {
+        displayName: input.displayName,
+        role: input.role,
+        establishmentId: input.establishmentId,
+      },
+    });
+  } catch (error) {
+    if (error && typeof error === "object" && "status" in error && error.status === 404) {
+      return undefined;
+    }
+    throw error;
+  }
 }
 
-async function setAgentStatus(id: string, status: AgentStatus, _reason: string): Promise<Agent | undefined> {
-  const current = await getAgent(id);
-  if (!current) return undefined;
-  const updated = { ...current, status };
-  agents = agents.map((item) => (item.id === id ? updated : item));
-  return updated;
+export async function suspendAgent(
+  id: string,
+  reason: string,
+  accessToken: string,
+): Promise<Agent | undefined> {
+  try {
+    return await apiRequest<Agent>(`/admin/agents/${id}/suspend`, {
+      method: "POST",
+      accessToken,
+      body: { reason },
+    });
+  } catch (error) {
+    if (error && typeof error === "object" && "status" in error && error.status === 404) {
+      return undefined;
+    }
+    throw error;
+  }
 }
 
-export function suspendAgent(id: string, reason: string) {
-  return setAgentStatus(id, "SUSPENDED", reason);
+export async function reactivateAgent(
+  id: string,
+  reason: string,
+  accessToken: string,
+): Promise<Agent | undefined> {
+  try {
+    return await apiRequest<Agent>(`/admin/agents/${id}/reactivate`, {
+      method: "POST",
+      accessToken,
+      body: { reason },
+    });
+  } catch (error) {
+    if (error && typeof error === "object" && "status" in error && error.status === 404) {
+      return undefined;
+    }
+    throw error;
+  }
 }
 
-export function reactivateAgent(id: string, reason: string) {
-  return setAgentStatus(id, "ACTIVE", reason);
+/** @deprecated mock reset — no-op after API wiring */
+export function resetAgentsForTests() {
+  // no-op
 }
+
+export type { AgentStatus };

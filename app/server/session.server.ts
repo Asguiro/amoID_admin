@@ -6,6 +6,8 @@ import { getServerEnv, isProduction } from "./env.server";
 
 type SessionData = {
   user: AdminSessionUser;
+  accessToken: string;
+  refreshToken: string;
 };
 
 type SessionFlashData = {
@@ -34,12 +36,30 @@ export async function getUserFromRequest(
   return session.get("user") ?? null;
 }
 
+export async function getAccessTokenFromRequest(
+  request: Request,
+): Promise<string | null> {
+  const session = await getSession(request.headers.get("Cookie"));
+  return session.get("accessToken") ?? null;
+}
+
+export async function requireAccessToken(request: Request): Promise<string> {
+  const token = await getAccessTokenFromRequest(request);
+  if (!token) {
+    throw redirect(`/login?redirectTo=${encodeURIComponent(new URL(request.url).pathname)}`);
+  }
+  return token;
+}
+
 export async function createUserSession(
   user: AdminSessionUser,
   redirectTo: string,
+  tokens: { accessToken: string; refreshToken: string },
 ) {
   const session = await getSession();
   session.set("user", user);
+  session.set("accessToken", tokens.accessToken);
+  session.set("refreshToken", tokens.refreshToken);
 
   return redirect(redirectTo, {
     headers: {

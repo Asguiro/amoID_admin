@@ -26,7 +26,10 @@ export async function loginAction(request: Request) {
       ? redirectTo
       : "/dashboard";
 
-  return createUserSession(result.user, safeRedirect);
+  return createUserSession(result.user, safeRedirect, {
+    accessToken: result.accessToken,
+    refreshToken: result.refreshToken,
+  });
 }
 
 export async function loginLoader(request: Request) {

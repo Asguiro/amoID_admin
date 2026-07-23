@@ -1,26 +1,61 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { authenticateUser } from "~/services/auth/auth.service";
 import { getDashboardOverview } from "~/services/dashboard/dashboard.service";
 import { adminRoles, permissions } from "~/config/permissions";
+import { ApiClientError } from "~/server/api/errors.server";
+
+vi.mock("~/server/api/client.server", () => ({
+  apiRequest: vi.fn(),
+}));
+
+import { apiRequest } from "~/server/api/client.server";
+
+const apiRequestMock = vi.mocked(apiRequest);
 
 describe("authenticateUser", () => {
-  it("authenticates the demo admin", async () => {
+  beforeEach(() => {
+    apiRequestMock.mockReset();
+  });
+
+  it("authenticates via API", async () => {
+    apiRequestMock.mockResolvedValueOnce({
+      accessToken: "access",
+      refreshToken: "refresh",
+      expiresIn: "15m",
+      user: {
+        id: "seed-agent-admin",
+        displayName: "Admin Central",
+        email: "admin@amo-id.ml",
+        role: adminRoles.ADMIN_CENTRAL,
+        permissions: [permissions.dashboardReadGlobal],
+      },
+    });
+
     const result = await authenticateUser({
-      email: "admin@amo.ml",
-      password: "Admin123!",
+      email: "admin@amo-id.ml",
+      password: "Demo@2026!",
     });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.user.role).toBe(adminRoles.ADMIN_CENTRAL);
+      expect(result.accessToken).toBe("access");
       expect(result.user.permissions).toContain(permissions.dashboardReadGlobal);
     }
   });
 
   it("rejects invalid credentials", async () => {
+    apiRequestMock.mockRejectedValueOnce(
+      new ApiClientError(401, {
+        code: "INVALID_CREDENTIALS",
+        message: "Identifiants invalides.",
+        correlationId: "test",
+      }),
+    );
+
     const result = await authenticateUser({
-      email: "admin@amo.ml",
+      email: "admin@amo-id.ml",
       password: "wrong",
     });
 

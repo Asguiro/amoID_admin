@@ -48,9 +48,11 @@ const columns: ColumnDef<Device>[] = [
     accessorKey: "lastSeenAt",
     header: "Dernière activité",
     cell: ({ row }) =>
-      new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(
-        new Date(row.original.lastSeenAt),
-      ),
+      row.original.lastSeenAt
+        ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(
+            new Date(row.original.lastSeenAt),
+          )
+        : "—",
   },
 ];
 
