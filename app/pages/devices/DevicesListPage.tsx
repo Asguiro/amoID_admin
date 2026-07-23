@@ -26,43 +26,90 @@ import type {
 } from "~/types/admin";
 import { buildListHref, countActiveListFilters } from "~/utils/search-params";
 
+const PLATFORM_LABELS: Record<string, string> = {
+  android: "Android",
+  ios: "iOS",
+};
+
+function deviceHardwareLabel(device: Device): string {
+  const parts = [device.brand, device.model].filter(Boolean);
+  if (parts.length > 0) return parts.join(" ");
+  return PLATFORM_LABELS[device.platform] ?? device.platform;
+}
+
 const columns: ColumnDef<Device>[] = [
   {
     accessorKey: "label",
     header: "Appareil",
     cell: ({ row }) => (
-      <Link
-        className="link link-primary font-medium"
-        to={`/devices/${row.original.id}`}
-      >
-        {row.original.label}
-      </Link>
+      <div className="min-w-0">
+        <Link
+          className="link link-primary font-medium"
+          to={`/devices/${row.original.id}`}
+        >
+          {row.original.label}
+        </Link>
+        <p className="text-xs text-base-content/55">
+          {deviceHardwareLabel(row.original)}
+          {row.original.osVersion
+            ? ` · ${PLATFORM_LABELS[row.original.platform] ?? row.original.platform} ${row.original.osVersion}`
+            : null}
+        </p>
+      </div>
     ),
   },
   {
-    accessorKey: "deviceId",
-    header: "Identifiant",
-    cell: ({ row }) => (
-      <span className="font-mono text-xs">{row.original.deviceId}</span>
-    ),
+    accessorKey: "agentName",
+    header: "Agent",
+    cell: ({ row }) =>
+      row.original.agentId ? (
+        <Link
+          className="link link-hover"
+          to={`/agents/${row.original.agentId}`}
+        >
+          {row.original.agentName}
+        </Link>
+      ) : (
+        row.original.agentName
+      ),
   },
-  { accessorKey: "agentName", header: "Agent" },
   { accessorKey: "establishmentName", header: "Établissement" },
-  { accessorKey: "platform", header: "Plateforme" },
+  {
+    accessorKey: "brand",
+    header: "Matériel",
+    cell: ({ row }) => {
+      const brand = row.original.brand || row.original.manufacturer;
+      const model = row.original.model;
+      if (!brand && !model) {
+        return PLATFORM_LABELS[row.original.platform] ?? row.original.platform;
+      }
+      return (
+        <span>
+          {[brand, model].filter(Boolean).join(" ")}
+          {row.original.osVersion ? (
+            <span className="text-base-content/50">
+              {" "}
+              · OS {row.original.osVersion}
+            </span>
+          ) : null}
+        </span>
+      );
+    },
+  },
   {
     accessorKey: "status",
-    header: "Statut",
+    header: "Confiance",
     cell: ({ row }) => <DeviceStatusBadge status={row.original.status} />,
   },
   {
     accessorKey: "pendingSyncCount",
-    header: "Sync en attente",
+    header: "Conflits sync",
     cell: ({ row }) => {
       const count = row.original.pendingSyncCount ?? 0;
       return count > 0 ? (
         <StatusBadge tone="warning">{count}</StatusBadge>
       ) : (
-        "0"
+        "—"
       );
     },
   },
@@ -74,7 +121,7 @@ const columns: ColumnDef<Device>[] = [
         ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(
             new Date(row.original.lastSeenAt),
           )
-        : "—",
+        : "Jamais",
   },
 ];
 
@@ -100,8 +147,8 @@ export function DevicesListPage({
   return (
     <>
       <PageHeader
-        title={agent ? `Appareils de ${agent.displayName}` : "Appareils"}
-        description="Consultez les terminaux enregistrés, la confiance et la file de sync offline."
+        title={agent ? `Appareils de ${agent.displayName}` : "Gestion des appareils"}
+        description="Approuvez, révoquez et suivez les terminaux mobiles autorisés à accéder à AMO ID."
         backTo={agent ? `/agents/${agent.id}` : undefined}
         backLabel="Retour à l’agent"
         actions={
@@ -126,8 +173,7 @@ export function DevicesListPage({
             <MetricCard
               label="Approuvés"
               value={stats.trusted}
-              trendPercent={0}
-              trendIntent="positive"
+              hint="Terminaux de confiance"
               icon={ShieldCheck}
               tint="mint"
             />
@@ -136,8 +182,11 @@ export function DevicesListPage({
             <MetricCard
               label="En attente"
               value={stats.pending}
-              trendPercent={0}
-              trendIntent={stats.pending > 0 ? "negative" : "positive"}
+              hint={
+                stats.pending > 0
+                  ? "Demandes à traiter"
+                  : "Aucune demande ouverte"
+              }
               icon={Smartphone}
               tint="gold"
               featured={stats.pending > 0}
@@ -147,17 +196,15 @@ export function DevicesListPage({
             <MetricCard
               label="Révoqués"
               value={stats.revoked}
-              trendPercent={0}
-              trendIntent={stats.revoked > 0 ? "negative" : "neutral"}
+              hint="Accès mobile bloqué"
               icon={ShieldAlert}
               tint="rose"
             />
           </Link>
           <MetricCard
-            label="Sync conflits"
+            label="Conflits sync"
             value={stats.pendingSync}
-            trendPercent={0}
-            trendIntent={stats.pendingSync > 0 ? "negative" : "neutral"}
+            hint="Reçus offline en conflit"
             icon={Activity}
             tint="sky"
           />
@@ -171,11 +218,11 @@ export function DevicesListPage({
             d’approbation
           </h2>
           <p className="mb-3 text-sm text-base-content/70">
-            Filtrez sur « En attente » pour examiner et approuver les demandes
-            d’enregistrement mobile.
+            Ces terminaux ont demandé un enregistrement depuis l’app mobile.
+            Ouvrez chaque fiche pour approuver ou révoquer.
           </p>
           <Link to="/devices?status=PENDING" className="link link-primary text-sm">
-            Voir la file PENDING
+            Traiter la file d’attente
           </Link>
         </AppCard>
       ) : null}
@@ -183,7 +230,7 @@ export function DevicesListPage({
       {!agent && pendingSync.length > 0 ? (
         <AppCard className="mb-5" padding="lg">
           <h2 className="amo-display mb-3 text-base font-semibold text-secondary">
-            File sync offline ({pendingSync.length})
+            Conflits de synchronisation ({pendingSync.length})
           </h2>
           <ul className="space-y-2 text-sm">
             {pendingSync.map((device) => (
@@ -198,7 +245,8 @@ export function DevicesListPage({
                   {device.label}
                 </Link>
                 <span>
-                  {device.agentName} · {device.pendingSyncCount} en attente
+                  {device.agentName} · {device.pendingSyncCount} conflit
+                  {(device.pendingSyncCount ?? 0) > 1 ? "s" : ""}
                 </span>
               </li>
             ))}

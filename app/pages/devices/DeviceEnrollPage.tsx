@@ -27,7 +27,7 @@ export function DeviceEnrollPage({
     <>
       <PageHeader
         title="Enrôler un appareil"
-        description="Enregistrez un terminal mobile comme TRUSTED pour un agent. L’identifiant doit correspondre au x-device-id de l’app."
+        description="Créez un terminal de confiance pour un agent, sans passer par la demande mobile. L’identifiant doit correspondre au deviceId de l’app."
         backTo="/devices"
         backLabel="Retour aux appareils"
       />

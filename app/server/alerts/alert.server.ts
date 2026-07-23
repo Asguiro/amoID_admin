@@ -1,3 +1,5 @@
+import { data } from "react-router";
+
 import { permissions } from "~/config/permissions";
 import { ALERT_DECISION_REASONS } from "~/config/reason-options";
 import { listAgents } from "~/services/agents/agents.service";
@@ -14,6 +16,7 @@ import { parseListSearchParams } from "~/utils/search-params";
 
 import { requirePermission } from "../auth/require-permission.server";
 import { ApiClientError } from "../api/errors.server";
+import { markAlertSeen } from "./seen-alerts.server";
 import { requireCsrfToken } from "../security/csrf.server";
 import { requireAccessToken } from "../session.server";
 
@@ -62,11 +65,17 @@ export async function loadAlertDetail(request: Request, id: string) {
     }
   }
 
-  return {
+  const seenCookie = await markAlertSeen(request, id);
+  const payload = {
     alert,
     permissions: user.permissions,
     assignableAgents,
   };
+
+  if (seenCookie) {
+    return data(payload, { headers: { "Set-Cookie": seenCookie } });
+  }
+  return payload;
 }
 
 export async function mutateAlert(request: Request, id: string) {

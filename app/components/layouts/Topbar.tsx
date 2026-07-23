@@ -26,10 +26,14 @@ export function Topbar({
 
       <div className="flex items-center gap-1 sm:gap-2">
         <Link
-          to="/alerts"
+          to="/alerts?status=NEW"
           className="btn btn-ghost btn-square relative h-11 w-11 rounded-2xl hover:bg-base-200"
-          aria-label={`Notifications — ${alertCount} alertes`}
-          title="Alertes prioritaires"
+          aria-label={
+            alertCount > 0
+              ? `Alertes non lues — ${alertCount}`
+              : "Aucune alerte non lue"
+          }
+          title="Alertes non lues"
         >
           <Bell className="size-5 text-base-content/55" />
           {alertCount > 0 ? (

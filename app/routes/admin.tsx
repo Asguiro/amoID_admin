@@ -3,6 +3,10 @@ import { data } from "react-router";
 import { AdminShell } from "~/components/layouts/AdminShell";
 import { permissions } from "~/config/permissions";
 import { requireAuth } from "~/server/auth/require-auth.server";
+import {
+  countUnseenAlerts,
+  getSeenAlertIds,
+} from "~/server/alerts/seen-alerts.server";
 import { ensureCsrfToken } from "~/server/security/csrf.server";
 import { getAccessTokenFromRequest } from "~/server/session.server";
 import { listAlerts } from "~/services/alerts/alert.service";
@@ -24,7 +28,18 @@ export async function loader({ request }: Route.LoaderArgs) {
         { page: 1, pageSize: 50, status: "NEW" },
         accessToken,
       );
-      alertCount = alerts.pagination.totalItems;
+      const seenIds = await getSeenAlertIds(request);
+      const viewingMatch = new URL(request.url).pathname.match(
+        /^\/alerts\/([^/]+)/,
+      );
+      const viewingId = viewingMatch?.[1];
+      const effectiveSeen = viewingId
+        ? [...seenIds, viewingId]
+        : seenIds;
+      alertCount = countUnseenAlerts(
+        alerts.items.map((item) => item.id),
+        effectiveSeen,
+      );
     } catch {
       alertCount = 0;
     }

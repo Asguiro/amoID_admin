@@ -6,8 +6,11 @@ interface MetricCardProps {
   label: string;
   value: number;
   unit?: string;
-  trendPercent: number;
+  /** Si omis, aucune ligne de tendance n’est affichée. */
+  trendPercent?: number;
   trendIntent?: "positive" | "negative" | "neutral";
+  /** Texte court sous la valeur (ex. « À traiter ») — alternatif à la tendance. */
+  hint?: string;
   icon?: LucideIcon;
   featured?: boolean;
   tint?: "mint" | "gold" | "sky" | "rose";
@@ -27,13 +30,16 @@ export function MetricCard({
   unit,
   trendPercent,
   trendIntent,
+  hint,
   icon: Icon,
   featured = false,
   tint = "mint",
   className,
 }: MetricCardProps) {
-  const positive = trendPercent >= 0;
-  const intent = trendIntent ?? (positive ? "positive" : "negative");
+  const showTrend = typeof trendPercent === "number";
+  const positive = showTrend ? trendPercent >= 0 : true;
+  const intent =
+    trendIntent ?? (showTrend ? (positive ? "positive" : "negative") : "neutral");
   const trendText =
     intent === "positive"
       ? "Évolution favorable"
@@ -89,26 +95,37 @@ export function MetricCard({
         ) : null}
       </dd>
 
-      <dd
-        className={clsx(
-          "stat-desc mt-3 inline-flex whitespace-normal items-center gap-1 text-sm font-medium",
-          featured
-            ? "text-white/90"
-            : intent === "positive"
-              ? "text-success"
-              : intent === "negative"
-                ? "text-error"
-                : "text-base-content/60",
-        )}
-      >
-        {positive ? (
-          <TrendingUp className="size-4" aria-hidden />
-        ) : (
-          <TrendingDown className="size-4" aria-hidden />
-        )}
-        {positive ? "+" : ""}
-        {trendPercent.toFixed(1)} % · {trendText}
-      </dd>
+      {showTrend ? (
+        <dd
+          className={clsx(
+            "stat-desc mt-3 inline-flex whitespace-normal items-center gap-1 text-sm font-medium",
+            featured
+              ? "text-white/90"
+              : intent === "positive"
+                ? "text-success"
+                : intent === "negative"
+                  ? "text-error"
+                  : "text-base-content/60",
+          )}
+        >
+          {positive ? (
+            <TrendingUp className="size-4" aria-hidden />
+          ) : (
+            <TrendingDown className="size-4" aria-hidden />
+          )}
+          {positive ? "+" : ""}
+          {trendPercent.toFixed(1)} % · {trendText}
+        </dd>
+      ) : hint ? (
+        <dd
+          className={clsx(
+            "stat-desc mt-3 text-sm font-medium",
+            featured ? "text-white/80" : "text-base-content/55",
+          )}
+        >
+          {hint}
+        </dd>
+      ) : null}
       </dl>
     </article>
   );

@@ -91,18 +91,39 @@ function mapComments(raw: unknown): AlertDetail["comments"] {
   });
 }
 
+const ALERT_TYPE_LABELS: Record<string, string> = {
+  DEVICE_REGISTRATION_PENDING: "Demande d’enregistrement d’appareil",
+  ENROLLMENT_DUPLICATE: "Doublon d’enrôlement suspecté",
+};
+
+function describeAlert(a: ApiAlert): string {
+  const typeLabel = a.type
+    ? (ALERT_TYPE_LABELS[a.type] ?? a.type)
+    : null;
+  if (a.type === "DEVICE_REGISTRATION_PENDING") {
+    return "Un agent a demandé l’enregistrement d’un terminal mobile. Approuvez ou refusez l’appareil depuis la fiche de gestion des appareils.";
+  }
+  if (typeLabel) {
+    return `Signal détecté : ${typeLabel}.`;
+  }
+  return "Signal de fraude / conformité.";
+}
+
 function mapAlert(a: ApiAlert): AlertDetail {
   return {
     id: a.id,
+    type: a.type,
     title: a.title,
     severity: a.severity,
     status: a.status,
     assigneeId: a.assigneeId,
     assignee: a.assigneeName ?? a.assignee,
     establishmentName: a.establishmentName,
+    entityType: a.entityType,
+    entityId: a.entityId,
     createdAt: a.createdAt,
     updatedAt: a.updatedAt,
-    description: a.type ? `Type : ${a.type}` : "Signal de fraude / conformité.",
+    description: describeAlert(a),
     timeline: [
       {
         id: `${a.id}-created`,

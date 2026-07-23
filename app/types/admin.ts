@@ -232,6 +232,10 @@ export interface Device {
   agentName: string;
   establishmentName: string;
   platform: string;
+  brand?: string | null;
+  model?: string | null;
+  manufacturer?: string | null;
+  osVersion?: string | null;
   lastSeenAt: string | null;
   enrolledAt: string;
   revokedAt?: string | null;
@@ -524,11 +528,14 @@ export interface TemporaryQrDetail extends TemporaryQr {
 export interface AlertItem {
   id: string;
   title: string;
+  type?: string;
   severity: AlertSeverity;
   status: AlertStatus;
   assignee?: string;
   assigneeId?: string;
   establishmentName?: string;
+  entityType?: string;
+  entityId?: string;
   createdAt: string;
   updatedAt: string;
 }

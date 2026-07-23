@@ -1,6 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { useEffect, useState } from "react";
 import { Form, Link, useFetcher, useNavigation } from "react-router";
+import { Smartphone } from "lucide-react";
 
 import { permissions } from "~/config/permissions";
 import { ALERT_DECISION_REASONS } from "~/config/reason-options";
@@ -8,12 +9,10 @@ import { PageHeader } from "~/components/layouts/PageHeader";
 import { AppCard } from "~/components/ui/AppCard";
 import { AuditTimeline } from "~/components/ui/AuditTimeline";
 import { DataTable } from "~/components/ui/DataTable";
-import { DetailSectionCard } from "~/components/ui/DetailSectionCard";
 import { FilterBar } from "~/components/ui/FilterBar";
 import { FilterSelect } from "~/components/ui/FilterSelect";
 import { FormField } from "~/components/ui/FormField";
 import { SearchField } from "~/components/ui/SearchField";
-import { PreparedMediaSlot } from "~/components/ui/MediaGallery";
 import { ReasonComposer } from "~/components/ui/ReasonComposer";
 import { AlertSeverityBadge, AlertStatusBadge } from "~/components/ui/StatusBadge";
 import { btnFilterSubmit, btnHeaderAction } from "~/components/ui/uiClasses";
@@ -68,6 +67,11 @@ const statuses: Array<{ value: AlertStatus; label: string }> = [
   { value: "ESCALATED", label: "Escaladée" },
   { value: "CLOSED", label: "Clôturée" },
 ];
+
+const ALERT_TYPE_LABELS: Record<string, string> = {
+  DEVICE_REGISTRATION_PENDING: "Enregistrement appareil",
+  ENROLLMENT_DUPLICATE: "Doublon enrôlement",
+};
 
 export function AlertsListPage({
   result,
@@ -231,6 +235,17 @@ function AssignAlertModal({
   );
 }
 
+function alertHeaderDescription(alert: AlertDetail): string {
+  const parts: string[] = [];
+  if (alert.type) {
+    parts.push(ALERT_TYPE_LABELS[alert.type] ?? alert.type);
+  }
+  if (alert.establishmentName) {
+    parts.push(alert.establishmentName);
+  }
+  return parts.join(" · ") || "Alerte opérationnelle";
+}
+
 export function AlertDetailPage({
   alert: initialAlert,
   userPermissions,
@@ -279,6 +294,10 @@ export function AlertDetailPage({
     alert.status === "ASSIGNED" ? canInvestigate : canDecide;
   const canShowAssign =
     canAssign && (alert.status === "NEW" || alert.status === "ASSIGNED");
+  const isDeviceRegistration =
+    alert.type === "DEVICE_REGISTRATION_PENDING" &&
+    alert.entityType === "Device" &&
+    Boolean(alert.entityId);
 
   useEffect(() => {
     if (assignFetcher.data?.ok) setAssignOpen(false);
@@ -288,7 +307,7 @@ export function AlertDetailPage({
     <>
       <PageHeader
         title={alert.title}
-        description={`${alert.id} · ${alert.establishmentName ?? "Établissement inconnu"}`}
+        description={alertHeaderDescription(alert)}
         backTo="/alerts"
         backLabel="Retour aux alertes"
         badge={
@@ -314,18 +333,55 @@ export function AlertDetailPage({
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
         <div className="space-y-6">
           <AppCard padding="lg">
-            <h2 className="amo-display text-lg font-semibold text-secondary">Signal détecté</h2>
-            <p className="mt-3 leading-relaxed text-base-content/75">{alert.description}</p>
+            <h2 className="amo-display text-lg font-semibold text-secondary">
+              Contexte
+            </h2>
+            <p className="mt-3 leading-relaxed text-base-content/75">
+              {alert.description}
+            </p>
+            <p className="mt-4 text-xs text-base-content/45">
+              Créée le{" "}
+              {new Date(alert.createdAt).toLocaleString("fr-FR")}
+              {alert.updatedAt !== alert.createdAt
+                ? ` · Mise à jour le ${new Date(alert.updatedAt).toLocaleString("fr-FR")}`
+                : null}
+            </p>
           </AppCard>
-          <DetailSectionCard
-            title="Preuves et pièces jointes"
-            description="Les références de vérification, captures ou documents seront présentées ici lorsqu’elles seront reliées à l’alerte."
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <PreparedMediaSlot label="Capture ou événement lié" kind="FACE_CAPTURE" />
-              <PreparedMediaSlot label="Pièce jointe d’investigation" kind="OTHER" />
-            </div>
-          </DetailSectionCard>
+
+          {isDeviceRegistration ? (
+            <AppCard padding="lg">
+              <div className="flex items-start gap-3">
+                <span className="rounded-2xl bg-warning/15 p-3 text-warning">
+                  <Smartphone className="size-5" aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h2 className="amo-display text-lg font-semibold text-secondary">
+                    Appareil à traiter
+                  </h2>
+                  <p className="mt-2 text-sm leading-relaxed text-base-content/70">
+                    La décision se prend sur la fiche appareil : approbation
+                    (TRUSTED), révocation, ou restauration. L’alerte se clôture
+                    automatiquement à l’approbation.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Link
+                      to={`/devices/${alert.entityId}`}
+                      className="btn btn-primary h-11 rounded-xl"
+                    >
+                      Ouvrir la fiche appareil
+                    </Link>
+                    <Link
+                      to="/devices?status=PENDING"
+                      className="btn btn-ghost h-11 rounded-xl"
+                    >
+                      File des appareils en attente
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </AppCard>
+          ) : null}
+
           <AppCard padding="lg">
             <h2 className="amo-display mb-5 text-lg font-semibold text-secondary">Chronologie</h2>
             <AuditTimeline items={alert.timeline} />
