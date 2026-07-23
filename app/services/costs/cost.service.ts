@@ -60,7 +60,7 @@ const claimBlueprints: Array<{
     careSetting: "HOSPITAL",
     baseAmount: 425_000,
     code: "HOSP-STD",
-  },
+  }, 
   {
     category: "LABORATORY",
     description: "Analyses de biologie médicale",
