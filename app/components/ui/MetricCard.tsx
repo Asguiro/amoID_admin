@@ -66,7 +66,7 @@ export function MetricCard({
         />
       ) : null}
 
-      <dl className="relative z-[1]">
+      <dl className="relative z-1">
       <dt
         className={clsx(
           "stat-title whitespace-normal text-sm font-medium",
