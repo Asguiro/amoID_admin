@@ -469,6 +469,8 @@ export interface Enrollment {
   media?: MediaAsset[];
   beneficiaryId?: string;
   returnReason?: string;
+  /** Didit portrait available for supervisor review (GET …/face-preview). */
+  facePreviewAvailable?: boolean;
 }
 
 export interface Verification {

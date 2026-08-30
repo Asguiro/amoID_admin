@@ -21,7 +21,7 @@ import {
   ENROLLMENT_REJECT_REASONS,
   ENROLLMENT_RETURN_REASONS,
 } from "~/config/reason-options";
-import type { Enrollment, ListQuery, PaginatedResponse } from "~/types/admin";
+import type { Enrollment, ListQuery, MediaAsset, PaginatedResponse } from "~/types/admin";
 import { CsrfField } from "~/components/security/CsrfProvider";
 import { enrollmentActionFlags } from "~/utils/enrollment-actions";
 import { buildListHref, countActiveListFilters } from "~/utils/search-params";
@@ -141,10 +141,38 @@ const qualityLabels = {
 } as const;
 
 function EnrollmentMediaSection({ enrollment }: { enrollment: Enrollment }) {
+  const facePreviewUrl = enrollment.facePreviewAvailable
+    ? `/admin/enrollments/${enrollment.id}/face-preview`
+    : undefined;
+
   const { galleryAssets, restrictedFace } = splitDossierMedia(enrollment.media);
   const hasAnyMedia = (enrollment.media?.length ?? 0) > 0;
 
-  if (!hasAnyMedia) {
+  const diditFaceAsset: MediaAsset | undefined =
+    facePreviewUrl && (restrictedFace || enrollment.faceCaptureSessionId)
+      ? {
+          id: restrictedFace?.id ?? `face-${enrollment.id}`,
+          kind: "FACE_CAPTURE",
+          label: restrictedFace?.label ?? "Capture faciale Didit",
+          availability: "AVAILABLE",
+          referenceId:
+            restrictedFace?.referenceId ?? enrollment.faceCaptureSessionId,
+          previewUrl: facePreviewUrl,
+          thumbnailUrl: facePreviewUrl,
+          permissions: {
+            canPreview: true,
+            canDownload: false,
+            canReveal: true,
+          },
+        }
+      : undefined;
+
+  const displayAssets = [
+    ...galleryAssets,
+    ...(diditFaceAsset ? [diditFaceAsset] : []),
+  ];
+
+  if (!hasAnyMedia && !diditFaceAsset) {
     return (
       <div className="grid gap-4 sm:grid-cols-2">
         <PreparedMediaSlot
@@ -166,8 +194,10 @@ function EnrollmentMediaSection({ enrollment }: { enrollment: Enrollment }) {
 
   return (
     <div className="space-y-4">
-      {galleryAssets.length > 0 ? <MediaGallery assets={galleryAssets} /> : null}
-      {restrictedFace ? (
+      {displayAssets.length > 0 ? (
+        <MediaGallery assets={displayAssets} />
+      ) : null}
+      {!diditFaceAsset && restrictedFace ? (
         <div className="grid gap-4 sm:grid-cols-2">
           <PreparedMediaSlot
             label={restrictedFace.label || "Capture faciale"}
@@ -276,7 +306,7 @@ export function EnrollmentDetailPage({
 
           <DetailSectionCard
             title="Captures et documents"
-            description="Les contenus biométriques restent protégés et ne sont chargés qu’avec une autorisation adaptée."
+            description="Consultez la capture faciale Didit avant de valider ou rejeter le dossier."
             badge={<span className="badge badge-outline">Données sensibles</span>}
           >
             <EnrollmentMediaSection enrollment={enrollment} />

@@ -102,8 +102,13 @@ export function MediaTile({
   return (
     <article className="card overflow-hidden border border-base-300 bg-base-100 shadow-sm">
       <figure className="relative aspect-[4/3] bg-base-200">
-        {asset.thumbnailUrl && asset.availability === "AVAILABLE" ? (
-          <img src={asset.thumbnailUrl} alt={asset.label} className="h-full w-full object-cover" />
+        {(asset.thumbnailUrl || asset.previewUrl) &&
+        asset.availability === "AVAILABLE" ? (
+          <img
+            src={asset.thumbnailUrl ?? asset.previewUrl}
+            alt={asset.label}
+            className="h-full w-full object-cover"
+          />
         ) : (
           <Icon className="size-10 text-base-content/25" aria-hidden="true" />
         )}
