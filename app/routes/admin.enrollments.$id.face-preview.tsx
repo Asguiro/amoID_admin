@@ -1,12 +1,21 @@
 import { permissions } from "~/config/permissions";
+import { hasAnyPermission } from "~/config/permissions";
 import { getServerEnv } from "~/server/env.server";
-import { requirePermission } from "~/server/auth/require-permission.server";
+import { requireAuth } from "~/server/auth/require-auth.server";
 import { requireAccessToken } from "~/server/session.server";
 
 import type { Route } from "./+types/admin.enrollments.$id.face-preview";
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await requirePermission(request, permissions.enrollmentValidate);
+  const user = await requireAuth(request);
+  if (
+    !hasAnyPermission(user.permissions, [
+      permissions.enrollmentRead,
+      permissions.enrollmentValidate,
+    ])
+  ) {
+    throw new Response("Non autorisé.", { status: 403 });
+  }
   const accessToken = await requireAccessToken(request);
   const env = getServerEnv();
 

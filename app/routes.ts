@@ -32,6 +32,10 @@ export default [
     route("beneficiaries/:id/costs", "routes/admin.beneficiaries.$id.costs.tsx"),
     route("enrollments", "routes/admin.enrollments.tsx"),
     route("enrollments/pending", "routes/admin.enrollments.pending.tsx"),
+    route(
+      "enrollments/:id/face-preview",
+      "routes/admin.enrollments.$id.face-preview.tsx",
+    ),
     route("enrollments/:id", "routes/admin.enrollments.$id.tsx"),
     route("verifications", "routes/admin.verifications.tsx"),
     route("verifications/:id", "routes/admin.verifications.$id.tsx"),

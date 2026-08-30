@@ -141,8 +141,11 @@ const qualityLabels = {
 } as const;
 
 function EnrollmentMediaSection({ enrollment }: { enrollment: Enrollment }) {
-  const facePreviewUrl = enrollment.facePreviewAvailable
-    ? `/admin/enrollments/${enrollment.id}/face-preview`
+  const canPreviewFace = Boolean(
+    enrollment.facePreviewAvailable ?? enrollment.faceCaptureSessionId,
+  );
+  const facePreviewUrl = canPreviewFace
+    ? `/enrollments/${enrollment.id}/face-preview`
     : undefined;
 
   const { galleryAssets, restrictedFace } = splitDossierMedia(enrollment.media);
