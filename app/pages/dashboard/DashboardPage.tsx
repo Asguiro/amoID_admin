@@ -99,9 +99,8 @@ export function DashboardPage({ overview }: DashboardPageProps) {
           <h2 id="dashboard-kpi-title" className="sr-only">Indicateurs clés</h2>
           {overview.kpis.map((kpi, index) => {
             const meta = resolveKpiMeta(kpi.id, index);
-            return (
+            const card = (
               <MetricCard
-                key={kpi.id}
                 label={kpi.label}
                 value={kpi.value}
                 unit={kpi.unit}
@@ -116,6 +115,22 @@ export function DashboardPage({ overview }: DashboardPageProps) {
                   index === 2 && "amo-animate-in-delay-2",
                 )}
               />
+            );
+
+            if (kpi.id === "pending_enrollments") {
+              return (
+                <Link
+                  key={kpi.id}
+                  to="/enrollments/pending"
+                  className="block transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-3xl"
+                >
+                  {card}
+                </Link>
+              );
+            }
+
+            return (
+              <div key={kpi.id}>{card}</div>
             );
           })}
         </section>

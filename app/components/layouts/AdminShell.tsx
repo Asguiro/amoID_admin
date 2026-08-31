@@ -12,12 +12,14 @@ interface AdminShellProps {
   user: AdminSessionUser;
   csrfToken: string;
   alertCount?: number;
+  pendingEnrollmentCount?: number;
 }
 
 export function AdminShell({
   user,
   csrfToken,
   alertCount = 0,
+  pendingEnrollmentCount = 0,
 }: AdminShellProps) {
   const contentRef = useRef<HTMLElement>(null);
   const { pathname } = useLocation();
@@ -49,7 +51,10 @@ export function AdminShell({
             aria-label="Fermer le menu"
             className="drawer-overlay"
           />
-          <Sidebar user={user} />
+          <Sidebar
+            user={user}
+            pendingEnrollmentCount={pendingEnrollmentCount}
+          />
         </div>
       </div>
     </CsrfProvider>

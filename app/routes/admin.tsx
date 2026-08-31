@@ -7,6 +7,7 @@ import {
   countUnseenAlerts,
   getSeenAlertIds,
 } from "~/server/alerts/seen-alerts.server";
+import { countPendingEnrollments } from "~/server/enrollments/enrollment.loader.server";
 import { ensureCsrfToken } from "~/server/security/csrf.server";
 import { getAccessTokenFromRequest } from "~/server/session.server";
 import { listAlerts } from "~/services/alerts/alert.service";
@@ -18,6 +19,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const { token, setCookieHeader } = await ensureCsrfToken(request);
 
   let alertCount = 0;
+  let pendingEnrollmentCount = 0;
   const accessToken = await getAccessTokenFromRequest(request);
   if (
     accessToken &&
@@ -45,8 +47,15 @@ export async function loader({ request }: Route.LoaderArgs) {
     }
   }
 
+  if (
+    accessToken &&
+    hasAnyPermission(user.permissions, [permissions.enrollmentRead])
+  ) {
+    pendingEnrollmentCount = await countPendingEnrollments(accessToken);
+  }
+
   return data(
-    { user, csrfToken: token, alertCount },
+    { user, csrfToken: token, alertCount, pendingEnrollmentCount },
     setCookieHeader
       ? { headers: { "Set-Cookie": setCookieHeader } }
       : undefined,
@@ -61,6 +70,7 @@ export default function AdminLayoutRoute({
       user={loaderData.user}
       csrfToken={loaderData.csrfToken}
       alertCount={loaderData.alertCount}
+      pendingEnrollmentCount={loaderData.pendingEnrollmentCount}
     />
   );
 }

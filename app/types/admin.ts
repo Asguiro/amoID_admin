@@ -450,6 +450,35 @@ export interface EnrollmentDuplicateCandidate {
   hint: string;
 }
 
+export type EnrollmentStep =
+  | "IDENTITY"
+  | "MANDATORY_INFO"
+  | "HEALTH_INFO"
+  | "FACE"
+  | "RECAP"
+  | "PENDING_VALIDATION"
+  | "VALIDATED"
+  | "CORRECTION_REQUIRED";
+
+export type EnrollmentProgressStatus =
+  | "IN_PROGRESS"
+  | "SUBMITTED"
+  | "CORRECTION_REQUIRED"
+  | "COMPLETED"
+  | "ABANDONED";
+
+export interface EnrollmentProgress {
+  currentStep: EnrollmentStep;
+  progressStatus: EnrollmentProgressStatus;
+  identityCompleted: boolean;
+  mandatoryInfoCompleted: boolean;
+  healthInfoCompleted: boolean;
+  healthInfoSkipped: boolean;
+  faceCompleted: boolean;
+  correctionTargetStep?: EnrollmentStep;
+  lastActivityAt: string;
+}
+
 export interface Enrollment {
   id: string;
   beneficiaryName: string;
@@ -466,6 +495,7 @@ export interface Enrollment {
   requiredFields?: EnrollmentRequiredFieldsSnapshot;
   duplicateCandidates?: EnrollmentDuplicateCandidate[];
   healthSummary?: BeneficiaryHealthSummary;
+  progress?: EnrollmentProgress;
   media?: MediaAsset[];
   beneficiaryId?: string;
   returnReason?: string;

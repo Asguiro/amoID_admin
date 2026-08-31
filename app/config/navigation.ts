@@ -1,6 +1,7 @@
 import {
   Activity,
   Building2,
+  ClipboardList,
   FileBarChart,
   Fingerprint,
   LayoutDashboard,
@@ -19,8 +20,12 @@ export interface NavigationItem {
   label: string;
   to: string;
   activePrefixes?: readonly string[];
+  /** Empêche l’activation sur les sous-routes (ex. /enrollments vs /enrollments/pending). */
+  end?: boolean;
   icon: typeof LayoutDashboard;
   permissions: readonly Permission[];
+  /** Clé pour afficher un badge de compteur dans la sidebar. */
+  badgeKey?: "pendingEnrollments";
 }
 
 export const navigationItems: NavigationItem[] = [
@@ -43,8 +48,17 @@ export const navigationItems: NavigationItem[] = [
   {
     label: "Enrôlements",
     to: "/enrollments",
+    end: true,
     icon: UserRoundCheck,
     permissions: [permissions.enrollmentRead],
+  },
+  {
+    label: "À valider",
+    to: "/enrollments/pending",
+    activePrefixes: ["/enrollments/pending"],
+    icon: ClipboardList,
+    permissions: [permissions.enrollmentRead],
+    badgeKey: "pendingEnrollments",
   },
   {
     label: "Vérifications",

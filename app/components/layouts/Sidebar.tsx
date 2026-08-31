@@ -11,6 +11,7 @@ import { CsrfField } from "~/components/security/CsrfProvider";
 
 interface SidebarProps {
   user: AdminSessionUser;
+  pendingEnrollmentCount?: number;
 }
 
 function initials(name: string) {
@@ -22,14 +23,17 @@ function initials(name: string) {
     .join("");
 }
 
-export function Sidebar({ user }: SidebarProps) {
+export function Sidebar({
+  user,
+  pendingEnrollmentCount = 0,
+}: SidebarProps) {
   const { pathname } = useLocation();
   const visibleItems = navigationItems.filter((item) =>
     hasAnyPermission(user.permissions, item.permissions),
   );
 
   return (
-    <aside className="flex h-full w-[272px] flex-col bg-base-100">
+    <aside className="flex h-full w-68 flex-col bg-base-100">
       <div className="px-5 pt-6 pb-4">
         <BrandLogo variant="horizontal" imgClassName="h-9" />
         <p className="mt-3 text-xs font-medium tracking-wide text-base-content/45 uppercase">
@@ -48,11 +52,16 @@ export function Sidebar({ user }: SidebarProps) {
               (prefix) =>
                 pathname === prefix || pathname.startsWith(`${prefix}/`),
             );
+            const badgeCount =
+              item.badgeKey === "pendingEnrollments"
+                ? pendingEnrollmentCount
+                : 0;
 
             return (
               <li key={item.to}>
                 <NavLink
                   to={item.to}
+                  end={item.end}
                   aria-current={isRelatedRoute ? "page" : undefined}
                   className={({ isActive }) =>
                     clsx(
@@ -62,7 +71,12 @@ export function Sidebar({ user }: SidebarProps) {
                   }
                 >
                   <Icon className="size-4 shrink-0" aria-hidden />
-                  <span>{item.label}</span>
+                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                  {badgeCount > 0 ? (
+                    <span className="badge badge-warning badge-sm shrink-0">
+                      {badgeCount > 99 ? "99+" : badgeCount}
+                    </span>
+                  ) : null}
                 </NavLink>
               </li>
             );

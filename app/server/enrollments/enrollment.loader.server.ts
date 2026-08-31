@@ -1,9 +1,10 @@
-import { permissions } from "~/config/permissions";
+import { hasPermission, permissions } from "~/config/permissions";
 import {
   ENROLLMENT_MANUAL_REVIEW_REASONS,
   ENROLLMENT_REJECT_REASONS,
   ENROLLMENT_RETURN_REASONS,
 } from "~/config/reason-options";
+import { listAuditEvents } from "~/services/audit/audit.service";
 import {
   getEnrollment,
   listEnrollments,
@@ -13,6 +14,7 @@ import {
   validateEnrollment,
 } from "~/services/enrollments/enrollment.service";
 import type { EnrollmentStatus } from "~/types/admin";
+import { auditActionLabel } from "~/utils/audit-labels";
 import { composeReasonFromForm } from "~/utils/compose-reason";
 import { enrollmentActionFlags } from "~/utils/enrollment-actions";
 import { parseListSearchParams } from "~/utils/search-params";
@@ -38,14 +40,46 @@ export async function loadEnrollments(request: Request, pendingOnly = false) {
   return { result: await listEnrollments(query, accessToken), query, pendingOnly };
 }
 
+async function loadEnrollmentAuditTimeline(
+  enrollmentId: string,
+  accessToken: string,
+) {
+  try {
+    const result = await listAuditEvents(
+      { q: enrollmentId, page: 1, pageSize: 30 },
+      accessToken,
+    );
+    return result.items.map((event) => ({
+      id: event.id,
+      label: auditActionLabel(event.action),
+      actor: event.actor,
+      createdAt: event.createdAt,
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function loadEnrollment(request: Request, id: string) {
   const user = await requirePermission(request, permissions.enrollmentRead);
   const accessToken = await requireAccessToken(request);
   const enrollment = await getEnrollment(id, accessToken);
   if (!enrollment) throw new Response("Enrôlement introuvable", { status: 404 });
+
+  const canReadAudit = hasPermission(user.permissions, permissions.auditRead);
+  const auditTimeline = canReadAudit
+    ? await loadEnrollmentAuditTimeline(id, accessToken)
+    : [];
+
   return {
     enrollment,
     permissions: user.permissions,
+    canReadHealth: hasPermission(
+      user.permissions,
+      permissions.beneficiaryReadHealth,
+    ),
+    canReadAudit,
+    auditTimeline,
     ...enrollmentActionFlags(enrollment, user.permissions),
   };
 }
@@ -102,10 +136,7 @@ export async function mutateEnrollment(request: Request, id: string) {
     }
 
     if (intent === "manual-review") {
-      await requirePermission(
-        request,
-        permissions.enrollmentReturnForCorrection,
-      );
+      await requirePermission(request, permissions.enrollmentValidate);
       assertEnrollmentStatus(
         current.status,
         ["PENDING_VALIDATION"],
@@ -157,5 +188,17 @@ export async function mutateEnrollment(request: Request, id: string) {
     return {
       error: actionError(error, "Impossible de traiter l’enrôlement."),
     };
+  }
+}
+
+export async function countPendingEnrollments(accessToken: string) {
+  try {
+    const result = await listEnrollments(
+      { page: 1, pageSize: 1, status: "PENDING_VALIDATION" },
+      accessToken,
+    );
+    return result.pagination.totalItems;
+  } catch {
+    return 0;
   }
 }

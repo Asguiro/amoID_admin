@@ -3,6 +3,7 @@ import { Form, Link, useNavigation } from "react-router";
 
 import { PageHeader } from "~/components/layouts/PageHeader";
 import { AppCard } from "~/components/ui/AppCard";
+import { AuditTimeline } from "~/components/ui/AuditTimeline";
 import { DataTable } from "~/components/ui/DataTable";
 import { DetailField, DetailGrid } from "~/components/ui/DetailField";
 import { DetailSectionCard } from "~/components/ui/DetailSectionCard";
@@ -21,9 +22,13 @@ import {
   ENROLLMENT_REJECT_REASONS,
   ENROLLMENT_RETURN_REASONS,
 } from "~/config/reason-options";
-import type { Enrollment, ListQuery, MediaAsset, PaginatedResponse } from "~/types/admin";
+import type { Enrollment, EnrollmentProgress, ListQuery, MediaAsset, PaginatedResponse } from "~/types/admin";
 import { CsrfField } from "~/components/security/CsrfProvider";
 import { enrollmentActionFlags } from "~/utils/enrollment-actions";
+import {
+  enrollmentProgressStatusLabel,
+  enrollmentStepLabel,
+} from "~/utils/enrollment-progress-labels";
 import { buildListHref, countActiveListFilters } from "~/utils/search-params";
 
 const columns: ColumnDef<Enrollment>[] = [
@@ -216,15 +221,82 @@ function EnrollmentMediaSection({ enrollment }: { enrollment: Enrollment }) {
   );
 }
 
+function ProgressFlag({ done, label }: { done: boolean; label: string }) {
+  return (
+    <span
+      className={
+        done
+          ? "badge badge-success badge-outline gap-1"
+          : "badge badge-ghost gap-1"
+      }
+    >
+      {done ? "✓" : "·"} {label}
+    </span>
+  );
+}
+
+function EnrollmentProgressSection({
+  progress,
+}: {
+  progress: EnrollmentProgress;
+}) {
+  return (
+    <AppCard padding="lg">
+      <h2 className="amo-display mb-5 text-lg font-semibold text-secondary">
+        Progression du dossier
+      </h2>
+      <DetailGrid>
+        <DetailField label="Étape courante">
+          {enrollmentStepLabel(progress.currentStep)}
+        </DetailField>
+        <DetailField label="Statut progression">
+          {enrollmentProgressStatusLabel(progress.progressStatus)}
+        </DetailField>
+        {progress.correctionTargetStep ? (
+          <DetailField label="Correction ciblée" className="sm:col-span-2">
+            {enrollmentStepLabel(progress.correctionTargetStep)}
+          </DetailField>
+        ) : null}
+        <DetailField label="Dernière activité" className="sm:col-span-2">
+          {new Date(progress.lastActivityAt).toLocaleString("fr-FR")}
+        </DetailField>
+      </DetailGrid>
+      <div className="mt-5 flex flex-wrap gap-2">
+        <ProgressFlag done={progress.identityCompleted} label="Identité" />
+        <ProgressFlag done={progress.mandatoryInfoCompleted} label="Obligatoire" />
+        <ProgressFlag
+          done={progress.healthInfoCompleted || progress.healthInfoSkipped}
+          label={
+            progress.healthInfoSkipped ? "Santé (ignorée)" : "Santé"
+          }
+        />
+        <ProgressFlag done={progress.faceCompleted} label="Face" />
+      </div>
+    </AppCard>
+  );
+}
+
 export function EnrollmentDetailPage({
   enrollment: initialEnrollment,
   permissions: userPermissions,
+  canReadHealth = false,
+  canReadAudit = false,
+  auditTimeline = [],
   actionData,
 }: {
   enrollment: Enrollment;
   permissions: string[];
+  canReadHealth?: boolean;
+  canReadAudit?: boolean;
+  auditTimeline?: Array<{
+    id: string;
+    label: string;
+    actor?: string;
+    createdAt: string;
+  }>;
   canValidate?: boolean;
   canReturn?: boolean;
+  canManualReview?: boolean;
   canReject?: boolean;
   actionData?: {
     error?: string;
@@ -235,11 +307,10 @@ export function EnrollmentDetailPage({
   const navigation = useNavigation();
   const busy = navigation.state === "submitting";
   const enrollment = actionData?.enrollment ?? initialEnrollment;
-  const { canValidate, canReturn, canReject } = enrollmentActionFlags(
-    enrollment,
-    userPermissions,
-  );
-  const canDecide = canValidate || canReturn || canReject;
+  const { canValidate, canReturn, canManualReview, canReject } =
+    enrollmentActionFlags(enrollment, userPermissions);
+  const canDecide =
+    canValidate || canReturn || canManualReview || canReject;
   const terminal =
     enrollment.status === "VALIDATED" || enrollment.status === "REJECTED";
 
@@ -307,6 +378,10 @@ export function EnrollmentDetailPage({
             </DetailGrid>
           </AppCard>
 
+          {enrollment.progress ? (
+            <EnrollmentProgressSection progress={enrollment.progress} />
+          ) : null}
+
           <DetailSectionCard
             title="Captures et documents"
             description="Consultez la capture faciale Didit avant de valider ou rejeter le dossier."
@@ -357,22 +432,44 @@ export function EnrollmentDetailPage({
             </AppCard>
           ) : null}
 
-          {enrollment.healthSummary ? (
+          {canReadHealth && enrollment.healthSummary ? (
             <AppCard padding="lg">
               <h2 className="amo-display mb-5 text-lg font-semibold text-secondary">
-                Santé (présence)
+                Santé d’urgence (résumé)
               </h2>
               <DetailGrid columns={3}>
+                <DetailField label="Consentement">
+                  {enrollment.healthSummary.consentAccepted ? "Accepté" : "Non"}
+                </DetailField>
                 <DetailField label="Contact urgence">
-                  {enrollment.healthSummary.hasEmergencyContact ? "Oui" : "Non"}
+                  {enrollment.healthSummary.hasEmergencyContact
+                    ? "Renseigné"
+                    : "Absent"}
                 </DetailField>
                 <DetailField label="Groupe sanguin">
-                  {enrollment.healthSummary.hasBloodGroup ? "Oui" : "Non"}
+                  {enrollment.healthSummary.hasBloodGroup
+                    ? "Renseigné"
+                    : "Absent"}
                 </DetailField>
                 <DetailField label="Allergies">
-                  {enrollment.healthSummary.hasAllergies ? "Oui" : "Non"}
+                  {enrollment.healthSummary.hasAllergies
+                    ? "Déclarées"
+                    : "Aucune"}
+                </DetailField>
+                <DetailField label="Chroniques">
+                  {enrollment.healthSummary.hasChronicConditions
+                    ? "Déclarées"
+                    : "Aucune"}
+                </DetailField>
+                <DetailField label="Traitements">
+                  {enrollment.healthSummary.hasTreatments
+                    ? "Déclarés"
+                    : "Aucun"}
                 </DetailField>
               </DetailGrid>
+              <p className="mt-4 text-xs text-base-content/50">
+                Les détails médicaux bruts ne sont pas exposés dans cette vue.
+              </p>
             </AppCard>
           ) : null}
 
@@ -414,6 +511,21 @@ export function EnrollmentDetailPage({
               </p>
             )}
           </AppCard>
+
+          {canReadAudit ? (
+            <AppCard padding="lg">
+              <h2 className="amo-display mb-5 text-lg font-semibold text-secondary">
+                Historique
+              </h2>
+              {auditTimeline.length > 0 ? (
+                <AuditTimeline items={auditTimeline} />
+              ) : (
+                <p className="text-sm text-base-content/60">
+                  Aucun événement d’audit enregistré pour ce dossier.
+                </p>
+              )}
+            </AppCard>
+          ) : null}
         </div>
 
         <AppCard padding="lg">
@@ -472,7 +584,7 @@ export function EnrollmentDetailPage({
             </Form>
           ) : null}
 
-          {canReturn ? (
+          {canManualReview ? (
             <Form
               method="post"
               className="mb-5 space-y-4 border-t border-base-200 pt-5"

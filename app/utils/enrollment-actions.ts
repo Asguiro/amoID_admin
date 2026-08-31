@@ -16,6 +16,8 @@ export function enrollmentActionFlags(
     canReturn:
       pending &&
       userPermissions.includes(permissions.enrollmentReturnForCorrection),
+    canManualReview:
+      pending && userPermissions.includes(permissions.enrollmentValidate),
     canReject:
       rejectable && userPermissions.includes(permissions.enrollmentReject),
   };
