@@ -55,8 +55,35 @@ GET  /admin/enrollments
 GET  /admin/enrollments/:id
 POST /admin/enrollments/:id/validate
 POST /admin/enrollments/:id/return-for-correction
+POST /admin/enrollments/:id/reject
 POST /admin/enrollments/:id/request-manual-review
 ```
+
+Réponse détail (`GET …/:id`) inclut désormais la progression serveur :
+
+```ts
+interface EnrollmentDetail {
+  id: string;
+  status: EnrollmentStatus;
+  beneficiaryId: string;
+  beneficiaryName: string;
+  // … champs existants …
+  progress?: {
+    currentStep: EnrollmentStep;
+    progressStatus: EnrollmentProgressStatus;
+    identityCompleted: boolean;
+    mandatoryInfoCompleted: boolean;
+    healthInfoCompleted: boolean;
+    healthInfoSkipped: boolean;
+    faceCompleted: boolean;
+    correctionTargetStep?: EnrollmentStep;
+    lastActivityAt: string;
+  };
+  healthSummary?: HealthSummary; // si permission beneficiary.read.health
+}
+```
+
+Timeline audit sur la fiche : filtrer les événements liés à l'enrollment (`ENROLLMENT_*`, `ENROLLMENT_PROGRESS_*`, `ENROLLMENT_STEP_COMPLETE`, etc.).
 
 ### Agents
 

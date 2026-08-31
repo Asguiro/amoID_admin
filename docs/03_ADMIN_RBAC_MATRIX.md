@@ -19,10 +19,12 @@ dashboard.read.region
 dashboard.read.establishment
 beneficiary.read.basic
 beneficiary.read.sensitive
+beneficiary.read.health
 beneficiary.read.costs
 enrollment.read
 enrollment.validate
 enrollment.return_for_correction
+enrollment.reject
 agent.read
 agent.create
 agent.update
@@ -58,6 +60,10 @@ settings.update
 | Données sensibles | Permission explicite | Permission explicite | Non par défaut | Selon mandat | Selon enrôlement | Non par défaut |
 | Coûts bénéficiaire | Permission explicite | Agrégé région | Agrégé site | Oui selon mandat | Non | Non |
 | Valider enrôlement | Oui | Oui | À confirmer | Non | Non | Non |
+| Renvoyer pour correction | Oui | Oui | À confirmer | Non | Non | Non |
+| Rejeter enrôlement | Oui | Oui | À confirmer | Non | Non | Non |
+| Demander revue manuelle | Oui (`enrollment.validate`) | Oui | À confirmer | Non | Non | Non |
+| Lire résumé santé (fiche enrôlement) | Permission `beneficiary.read.health` | Idem | Non par défaut | Selon mandat | Non | Non |
 | Créer agent | Oui | À confirmer | Site si autorisé | Non | Non | Non |
 | Suspendre agent | Oui | À confirmer | Site | Non | Non | Non |
 | Révoquer appareil | Oui | Région si autorisé | Site | Non | Non | Non |
@@ -83,6 +89,19 @@ export async function agentsListLoader(args: LoaderFunctionArgs) {
   return getAgents({ context, filters: parseAgentFilters(args.request.url) });
 }
 ```
+
+### Enrôlements — règles UI (PR-7)
+
+| Action UI | Permission API requise | Notes |
+|---|---|---|
+| Valider | `enrollment.validate` | — |
+| Renvoyer pour correction | `enrollment.return_for_correction` | Motif obligatoire |
+| Rejeter | `enrollment.reject` | Met `EnrollmentProgress` en `CORRECTION_REQUIRED` |
+| Demander revue manuelle | `enrollment.validate` | Aligné API (`request-manual-review`) — **pas** `return_for_correction` seul |
+| Afficher `healthSummary` | `beneficiary.read.health` | Masqué sinon |
+| Bloc `EnrollmentProgress` | `enrollment.read` | Étape courante + flags sur fiche détail |
+
+Navigation « À valider » : `/enrollments/pending` — badge alimenté par le compteur `PENDING_VALIDATION`.
 
 ## 5. Actions sensibles
 
