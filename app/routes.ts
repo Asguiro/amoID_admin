@@ -26,6 +26,10 @@ export default [
     route("devices/:id", "routes/admin.devices.$id.tsx"),
     route("beneficiaries", "routes/admin.beneficiaries.tsx"),
     route("beneficiaries/:id", "routes/admin.beneficiaries.$id.tsx"),
+    route(
+      "beneficiaries/:id/face-preview",
+      "routes/admin.beneficiaries.$id.face-preview.tsx",
+    ),
     route("beneficiaries/:id/activity", "routes/admin.beneficiaries.$id.activity.tsx"),
     route("beneficiaries/:id/coverage", "routes/admin.beneficiaries.$id.coverage.tsx"),
     route("beneficiaries/:id/temporary-qr", "routes/admin.beneficiaries.$id.temporary-qr.tsx"),

@@ -300,6 +300,8 @@ export interface BeneficiaryDetail extends Beneficiary {
   primaryHolderName?: string;
   healthSummary?: BeneficiaryHealthSummary;
   media?: MediaAsset[];
+  facePreviewAvailable?: boolean;
+  faceCaptureSessionId?: string;
   activity: Array<{ id: string; label: string; createdAt: string }>;
   coverageHistory: Array<{
     id: string;

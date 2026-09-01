@@ -3,6 +3,7 @@ import {
   Camera,
   Download,
   Eye,
+  ExternalLink,
   FileText,
   ImageIcon,
   LockKeyhole,
@@ -98,19 +99,42 @@ export function MediaTile({
 }) {
   const meta = availabilityMeta[asset.availability];
   const Icon = kindIcon[asset.kind];
+  const [imageFailed, setImageFailed] = useState(false);
+  const previewSrc = asset.thumbnailUrl ?? asset.previewUrl;
+  const isPdf = asset.mimeType?.toLowerCase().includes("pdf");
+  const showImage =
+    previewSrc &&
+    asset.availability === "AVAILABLE" &&
+    !imageFailed &&
+    !isPdf;
 
   return (
     <article className="card overflow-hidden border border-base-300 bg-base-100 shadow-sm">
       <figure className="relative aspect-[4/3] bg-base-200">
-        {(asset.thumbnailUrl || asset.previewUrl) &&
-        asset.availability === "AVAILABLE" ? (
+        {showImage ? (
           <img
-            src={asset.thumbnailUrl ?? asset.previewUrl}
+            src={previewSrc}
             alt={asset.label}
             className="h-full w-full object-cover"
+            onError={() => setImageFailed(true)}
           />
+        ) : isPdf && previewSrc && asset.availability === "AVAILABLE" ? (
+          <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center">
+            <FileText className="size-10 text-base-content/40" aria-hidden="true" />
+            <a
+              href={previewSrc}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-outline btn-sm rounded-xl"
+            >
+              <ExternalLink className="size-4" aria-hidden="true" />
+              Ouvrir le PDF
+            </a>
+          </div>
         ) : (
-          <Icon className="size-10 text-base-content/25" aria-hidden="true" />
+          <div className="flex h-full items-center justify-center">
+            <Icon className="size-10 text-base-content/25" aria-hidden="true" />
+          </div>
         )}
         <span className={clsx("badge badge-sm absolute top-3 right-3", meta.badge)}>
           {meta.label}
@@ -163,6 +187,7 @@ export function MediaGallery({
 
 export function DocumentRow({ asset }: { asset: MediaAsset }) {
   const meta = availabilityMeta[asset.availability];
+  const isPdf = asset.mimeType?.toLowerCase().includes("pdf");
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-base-300 bg-base-100 p-4">
       <span className="flex size-10 items-center justify-center rounded-xl bg-base-200 text-primary">
@@ -173,6 +198,17 @@ export function DocumentRow({ asset }: { asset: MediaAsset }) {
         <p className="text-xs text-base-content/55">{asset.mimeType ?? "Type non renseigné"}</p>
       </div>
       <span className={clsx("badge badge-sm", meta.badge)}>{meta.label}</span>
+      {asset.previewUrl && asset.permissions.canPreview && isPdf ? (
+        <a
+          href={asset.previewUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn btn-ghost btn-sm rounded-xl"
+        >
+          <ExternalLink className="size-4" aria-hidden="true" />
+          Ouvrir
+        </a>
+      ) : null}
       {asset.previewUrl && asset.permissions.canDownload ? (
         <a href={asset.previewUrl} download className="btn btn-ghost btn-sm rounded-xl">
           <Download className="size-4" aria-hidden="true" />
@@ -181,6 +217,24 @@ export function DocumentRow({ asset }: { asset: MediaAsset }) {
       ) : null}
     </div>
   );
+}
+
+function isDocumentAsset(asset: MediaAsset): boolean {
+  if (asset.kind === "ID_DOCUMENT" || asset.kind === "ATTESTATION" || asset.kind === "OTHER") {
+    return true;
+  }
+  return Boolean(asset.mimeType?.toLowerCase().includes("pdf"));
+}
+
+/** Split image gallery assets from downloadable documents. */
+export function splitGalleryAndDocuments(media: MediaAsset[] | undefined): {
+  galleryAssets: MediaAsset[];
+  documentAssets: MediaAsset[];
+} {
+  const assets = media ?? [];
+  const documentAssets = assets.filter(isDocumentAsset);
+  const galleryAssets = assets.filter((asset) => !isDocumentAsset(asset));
+  return { galleryAssets, documentAssets };
 }
 
 /** Split previewable assets from restricted face captures without URLs. */

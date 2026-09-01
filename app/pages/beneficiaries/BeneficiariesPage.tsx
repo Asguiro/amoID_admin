@@ -12,10 +12,13 @@ import { FilterBar } from "~/components/ui/FilterBar";
 import { FilterSelect } from "~/components/ui/FilterSelect";
 import { SearchField } from "~/components/ui/SearchField";
 import {
+  DocumentRow,
   MediaGallery,
   PreparedMediaSlot,
   splitDossierMedia,
+  splitGalleryAndDocuments,
 } from "~/components/ui/MediaGallery";
+import type { MediaAsset } from "~/types/admin";
 import { SensitiveDataReveal } from "~/components/ui/SensitiveDataReveal";
 import { StatusBadge } from "~/components/ui/StatusBadge";
 import { btnFilterSubmit } from "~/components/ui/uiClasses";
@@ -369,10 +372,43 @@ function BeneficiaryMediaSection({
 }: {
   beneficiary: BeneficiaryDetail;
 }) {
+  const canPreviewFace = Boolean(
+    beneficiary.facePreviewAvailable ?? beneficiary.faceCaptureSessionId,
+  );
+  const facePreviewUrl = canPreviewFace
+    ? `/beneficiaries/${beneficiary.id}/face-preview`
+    : undefined;
+
   const { galleryAssets, restrictedFace } = splitDossierMedia(beneficiary.media);
+  const { galleryAssets: imageAssets, documentAssets } =
+    splitGalleryAndDocuments(galleryAssets);
   const hasAnyMedia = (beneficiary.media?.length ?? 0) > 0;
 
-  if (!hasAnyMedia) {
+  const diditFaceAsset: MediaAsset | undefined =
+    facePreviewUrl && (restrictedFace || beneficiary.faceCaptureSessionId)
+      ? {
+          id: restrictedFace?.id ?? `face-${beneficiary.id}`,
+          kind: "FACE_CAPTURE",
+          label: restrictedFace?.label ?? "Capture faciale Didit",
+          availability: "AVAILABLE",
+          referenceId:
+            restrictedFace?.referenceId ?? beneficiary.faceCaptureSessionId,
+          previewUrl: facePreviewUrl,
+          thumbnailUrl: facePreviewUrl,
+          permissions: {
+            canPreview: true,
+            canDownload: false,
+            canReveal: true,
+          },
+        }
+      : undefined;
+
+  const displayAssets = [
+    ...imageAssets,
+    ...(diditFaceAsset ? [diditFaceAsset] : []),
+  ];
+
+  if (!hasAnyMedia && !diditFaceAsset) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <PreparedMediaSlot label="Portrait bénéficiaire" kind="PORTRAIT" availability="MISSING" />
@@ -388,8 +424,16 @@ function BeneficiaryMediaSection({
 
   return (
     <div className="space-y-4">
-      {galleryAssets.length > 0 ? <MediaGallery assets={galleryAssets} /> : null}
-      {restrictedFace ? (
+      {displayAssets.length > 0 ? <MediaGallery assets={displayAssets} /> : null}
+      {documentAssets.length > 0 ? (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-secondary">Documents</h3>
+          {documentAssets.map((asset) => (
+            <DocumentRow key={asset.id} asset={asset} />
+          ))}
+        </div>
+      ) : null}
+      {!diditFaceAsset && restrictedFace ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <PreparedMediaSlot
             label={restrictedFace.label || "Capture biométrique"}
