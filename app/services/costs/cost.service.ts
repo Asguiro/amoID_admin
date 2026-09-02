@@ -208,11 +208,42 @@ function breakdown(
     .sort((a, b) => b.coveredAmount - a.coveredAmount);
 }
 
+function createEmptyCostProfile(
+  beneficiaryId: string,
+  beneficiaryName: string,
+): BeneficiaryCostProfile {
+  return {
+    beneficiaryId,
+    beneficiaryName,
+    periodLabel: "Janvier à juillet 2026",
+    generatedAt: new Date().toISOString(),
+    dataSource: "DEMO",
+    totals: {
+      claimsCount: 0,
+      billedAmount: 0,
+      eligibleAmount: 0,
+      coveredAmount: 0,
+      copayAmount: 0,
+      rejectedAmount: 0,
+      establishmentsCount: 0,
+      regionsCount: 0,
+      anomalySignalsCount: 0,
+    },
+    byCategory: [],
+    byEstablishment: [],
+    monthlyTrend: [],
+    claims: [],
+  };
+}
+
 export async function getBeneficiaryCostProfile(
   beneficiaryId: string,
-): Promise<BeneficiaryCostProfile | null> {
+  beneficiaryName = "Bénéficiaire",
+): Promise<BeneficiaryCostProfile> {
   const beneficiary = beneficiaryDirectory.find(([id]) => id === beneficiaryId);
-  if (!beneficiary) return null;
+  if (!beneficiary) {
+    return createEmptyCostProfile(beneficiaryId, beneficiaryName);
+  }
   const items = claims
     .filter((claim) => claim.beneficiaryId === beneficiaryId)
     .sort((a, b) => b.serviceDate.localeCompare(a.serviceDate));
@@ -269,7 +300,7 @@ export async function getCostReport(query = ""): Promise<CostReport> {
   const normalizedQuery = query.trim().toLocaleLowerCase("fr");
   const profiles = (
     await Promise.all(beneficiaryDirectory.map(([id]) => getBeneficiaryCostProfile(id)))
-  ).filter((profile): profile is BeneficiaryCostProfile => Boolean(profile));
+  ).filter((profile) => profile.totals.claimsCount > 0);
   const ranking: BeneficiaryCostRankingItem[] = profiles
     .map((profile) => {
       const beneficiary = beneficiaryDirectory.find(([id]) => id === profile.beneficiaryId)!;

@@ -55,12 +55,12 @@ export function TrendChart({ series }: TrendChartProps) {
       },
       series: [
         {
-          name: "Enrôlements",
+          name: "Vérifications",
           type: "line",
           smooth: true,
           symbol: "circle",
           symbolSize: 7,
-          data: series.map((point) => point.enrollments),
+          data: series.map((point) => point.verifications),
         },
       ],
     });

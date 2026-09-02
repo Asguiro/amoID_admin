@@ -58,7 +58,11 @@ const beneficiaryColumns: ColumnDef<Beneficiary>[] = [
     ),
   },
   { accessorKey: "ninaMasked", header: "NINA" },
-  { accessorKey: "amoNumberMasked", header: "N° AMO" },
+  {
+    accessorKey: "amoNumberMasked",
+    header: "N° AMO",
+    cell: ({ row }) => row.original.amoNumberMasked || "—",
+  },
   {
     accessorKey: "beneficiaryType",
     header: "Type",

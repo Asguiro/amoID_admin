@@ -1,4 +1,6 @@
+import { permissions, hasPermission } from "~/config/permissions";
 import { apiRequest } from "~/server/api/client.server";
+import { ApiClientError } from "~/server/api/errors.server";
 import type {
   AdminSessionUser,
   DashboardOverview,
@@ -36,9 +38,8 @@ export async function getDashboardOverview(input: {
   period: DashboardPeriod;
   empty?: boolean;
   accessToken: string;
+  request?: Request;
 }): Promise<DashboardOverview> {
-  void input.user;
-
   if (input.empty) {
     return {
       period: input.period,
@@ -51,24 +52,46 @@ export async function getDashboardOverview(input: {
     };
   }
 
-  const [summary, trends, alerts] = await Promise.all([
-    apiRequest<SummaryResponse>("/admin/dashboard/summary", {
-      accessToken: input.accessToken,
-    }),
-    apiRequest<TrendsResponse>("/admin/dashboard/trends", {
-      accessToken: input.accessToken,
-    }),
-    apiRequest<AlertsResponse>("/admin/dashboard/alerts", {
-      accessToken: input.accessToken,
-    }),
-  ]);
+  const canReadAlerts = hasPermission(
+    input.user.permissions,
+    permissions.alertRead,
+  );
 
-  return {
-    period: input.period,
-    generatedAt: summary.generatedAt ?? trends.generatedAt ?? new Date().toISOString(),
-    kpis: summary.kpis ?? [],
-    priorityAlerts: alerts.items ?? [],
-    recentActivity: [],
-    series: mapSeries(trends.points ?? []),
-  };
+  try {
+    const [summary, trends, alerts] = await Promise.all([
+      apiRequest<SummaryResponse>("/admin/dashboard/summary", {
+        accessToken: input.accessToken,
+        request: input.request,
+      }),
+      apiRequest<TrendsResponse>("/admin/dashboard/trends", {
+        accessToken: input.accessToken,
+        request: input.request,
+      }),
+      canReadAlerts
+        ? apiRequest<AlertsResponse>("/admin/dashboard/alerts", {
+            accessToken: input.accessToken,
+            request: input.request,
+          })
+        : Promise.resolve({ items: [] }),
+    ]);
+
+    return {
+      period: input.period,
+      generatedAt:
+        summary.generatedAt ?? trends.generatedAt ?? new Date().toISOString(),
+      kpis: summary.kpis ?? [],
+      priorityAlerts: alerts.items ?? [],
+      recentActivity: [],
+      series: mapSeries(trends.points ?? []),
+    };
+  } catch (error) {
+    if (error instanceof ApiClientError) {
+      throw error;
+    }
+    throw new ApiClientError(500, {
+      code: "DASHBOARD_LOAD_FAILED",
+      message: "Impossible de charger le tableau de bord.",
+      correlationId: `dashboard-${crypto.randomUUID()}`,
+    });
+  }
 }

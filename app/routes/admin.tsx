@@ -9,14 +9,20 @@ import {
 } from "~/server/alerts/seen-alerts.server";
 import { countPendingEnrollments } from "~/server/enrollments/enrollment.loader.server";
 import { ensureCsrfToken } from "~/server/security/csrf.server";
-import { getAccessTokenFromRequest } from "~/server/session.server";
+import {
+  getAccessTokenFromRequest,
+  getRequestAuthCookieHeader,
+  mergeSetCookieHeaders,
+} from "~/server/session.server";
 import { listAlerts } from "~/services/alerts/alert.service";
 import { hasAnyPermission } from "~/config/permissions";
 import type { Route } from "./+types/admin";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const user = await requireAuth(request);
-  const { token, setCookieHeader } = await ensureCsrfToken(request);
+  const { token, setCookieHeader: csrfCookieHeader } =
+    await ensureCsrfToken(request);
+  const sessionCookieHeader = await getRequestAuthCookieHeader(request);
 
   let alertCount = 0;
   let pendingEnrollmentCount = 0;
@@ -53,6 +59,11 @@ export async function loader({ request }: Route.LoaderArgs) {
   ) {
     pendingEnrollmentCount = await countPendingEnrollments(accessToken);
   }
+
+  const setCookieHeader = mergeSetCookieHeaders(
+    sessionCookieHeader,
+    csrfCookieHeader,
+  );
 
   return data(
     { user, csrfToken: token, alertCount, pendingEnrollmentCount },

@@ -138,9 +138,9 @@ export function DashboardPage({ overview }: DashboardPageProps) {
 
       {overview.series.length > 0 ? (
         <ChartCard
-          title="Évolution des enrôlements"
-          description="Volume d’enrôlements sur la période sélectionnée."
-          summary={`Courbe simple de ${overview.series.length} points représentant l’évolution des enrôlements.`}
+          title="Évolution des vérifications"
+          description="Volume de vérifications sur la période sélectionnée."
+          summary={`Courbe simple de ${overview.series.length} points représentant l’évolution des vérifications.`}
           className="mt-6 amo-animate-in amo-animate-in-delay-1"
         >
           <TrendChartLazy series={overview.series} />

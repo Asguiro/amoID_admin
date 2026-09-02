@@ -13,6 +13,7 @@ import { Form, Link } from "react-router";
 
 import { PageHeader } from "~/components/layouts/PageHeader";
 import { AppCard } from "~/components/ui/AppCard";
+import { EmptyState } from "~/components/ui/EmptyState";
 import { EntityAvatar } from "~/components/ui/EntityAvatar";
 import { SearchField } from "~/components/ui/SearchField";
 import { StatusBadge } from "~/components/ui/StatusBadge";
@@ -251,6 +252,15 @@ export function BeneficiaryCostsPage({
       />
       <DemoDataNotice />
 
+      {profile.totals.claimsCount === 0 ? (
+        <div className="mt-6">
+          <EmptyState
+            title="Aucune prestation enregistrée"
+            description="Les données financières de ce bénéficiaire ne sont pas encore disponibles. Cette vue affichera les prestations et montants dès leur intégration."
+          />
+        </div>
+      ) : (
+        <>
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryMetric
           label="Pris en charge par l’AMO"
@@ -308,6 +318,8 @@ export function BeneficiaryCostsPage({
       <div className="mt-6">
         <ClaimHistory claims={profile.claims} />
       </div>
+        </>
+      )}
     </>
   );
 }
