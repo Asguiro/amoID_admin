@@ -13,7 +13,8 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import { TrendChartLazy } from "~/components/charts/TrendChartLazy";
+import { TrendChart } from "~/components/charts/TrendChart";
+import { ChartErrorBoundary } from "~/components/charts/ChartErrorBoundary";
 import { PageHeader } from "~/components/layouts/PageHeader";
 import { AppCard } from "~/components/ui/AppCard";
 import { ChartCard } from "~/components/ui/ChartCard";
@@ -143,7 +144,9 @@ export function DashboardPage({ overview }: DashboardPageProps) {
           summary={`Courbe simple de ${overview.series.length} points représentant l’évolution des vérifications.`}
           className="mt-6 amo-animate-in amo-animate-in-delay-1"
         >
-          <TrendChartLazy series={overview.series} />
+          <ChartErrorBoundary>
+            <TrendChart series={overview.series} />
+          </ChartErrorBoundary>
         </ChartCard>
       ) : null}
 
